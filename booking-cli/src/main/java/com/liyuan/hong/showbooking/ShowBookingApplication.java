@@ -1,6 +1,7 @@
 package com.liyuan.hong.showbooking;
 
-import java.text.ParseException;
+import static com.liyuan.hong.showbooking.domain.Operation.*;
+
 import java.util.Scanner;
 
 import org.springframework.boot.CommandLineRunner;
@@ -43,7 +44,7 @@ public class ShowBookingApplication implements CommandLineRunner {
 					break;
 				}
 				try {
-					String[] ins = parseCmd(cmd);
+					Object[] ins = parseCmd(cmd);
 					appController.process(ins);
 				} catch (Exception e) {
 					displayWrongCmdErrorMsg();
@@ -59,32 +60,33 @@ public class ShowBookingApplication implements CommandLineRunner {
 		System.exit(0);
 	}
 
-	private String[] parseCmd(String cmd) throws Exception {
-		String[] args = new String[4];
+	private Object[] parseCmd(String cmd) throws Exception {
+		Object[] args = new Object[4];
 		String[] cmds = cmd.split(" ");
 		if (cmds.length < 2) {
 			throw new Exception("");
 		}
-		if ("setup".equalsIgnoreCase(cmds[0])) {
-			args[0] = "setup";
+		String op = cmds[0];
+		if ("setup".equalsIgnoreCase(op)) {
+			args[0] = SETUP;
 			extractArgs(cmds, args, 3);
-		} else if ("show".equalsIgnoreCase(cmds[0])) {
-			args[0] = "show";
+		} else if ("view".equalsIgnoreCase(op)) {
+			args[0] = VIEW;
 			extractArgs(cmds, args, 1);
-		} else if ("remove".equalsIgnoreCase(cmds[0])) {
-			args[0] = "remove";
+		} else if ("remove".equalsIgnoreCase(op)) {
+			args[0] = REMOVE;
 			extractArgs(cmds, args, 2);
-		} else if ("remove".equalsIgnoreCase(cmds[0])) {
-			args[0] = "remove";
+		} else if ("add".equalsIgnoreCase(op)) {
+			args[0] = ADD;
 			extractArgs(cmds, args, 2);
-		} else if ("remove".equalsIgnoreCase(cmds[0])) {
-			args[0] = "remove";
+		} else if ("availability".equalsIgnoreCase(op)) {
+			args[0] = AVAILABILITY;
 			extractArgs(cmds, args, 1);
-		} else if ("remove".equalsIgnoreCase(cmds[0])) {
-			args[0] = "remove";
+		} else if ("book".equalsIgnoreCase(op)) {
+			args[0] = BOOK;
 			extractArgs(cmds, args, 2);
-		} else if ("remove".equalsIgnoreCase(cmds[0])) {
-			args[0] = "remove";
+		} else if ("cancel".equalsIgnoreCase(op)) {
+			args[0] = CANCEL;
 			extractArgs(cmds, args, 3);
 		} else {
 			throw new Exception("");
@@ -92,20 +94,20 @@ public class ShowBookingApplication implements CommandLineRunner {
 		return args;
 	}
 
-	private void extractArgs(String[] cmds, String[] args, int num) {
+	private void extractArgs(String[] cmds, Object[] args, int num) {
 		switch (num) {
 		case 3:
-			args[3] = Integer.valueOf(cmds[3]).toString();
+			args[3] = cmds[3];
 		case 2:
-			args[2] = Integer.valueOf(cmds[2]).toString();
+			args[2] = cmds[2];
 		case 1:
-			args[1] = Integer.valueOf(cmds[1]).toString();
+			args[1] = Integer.valueOf(cmds[1]);
 		}
 	}
 
 	private void displayWrongCmdErrorMsg() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }
