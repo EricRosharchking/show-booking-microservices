@@ -7,32 +7,8 @@ import com.liyuan.hong.showbooking.exception.BuyerException;
 public abstract class AppController {
 
 	public void process(Object[] args) throws Exception {
-		Operation op = (Operation) args[0];
-		switch (op) {
-		case SETUP:
-			setupShow((int)args[1], Integer.valueOf((String) args[2]), Integer.valueOf((String) args[3], Integer.valueOf((String) args[4])), 0);
-			break;
-		case VIEW:
-			viewShow((int)args[1]);
-			break;
-		case REMOVE:
-			removeSeatsFromShow((int)args[1], Integer.valueOf((String) args[2]));
-			break;
-		case ADD:
-			addSeatsToShow((int)args[1], Integer.valueOf((String) args[2]));
-			break;
-		case AVAILABILITY:
-			checkShowAvailability((int)args[1]);
-			break;
-		case BOOK:
-			bookTicket((int)args[1], (String)args[2], (String) args[3]);
-			break;
-		case CANCEL:
-			cancelTicket((int)args[1], (String) args[2], Integer.valueOf((String) args[3]));
-			break;
-		default:
-			throw new Exception();
-		}
+		System.out.println("Processing Request");
+		
 	}
 
 	public abstract void setupShow(int showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException;

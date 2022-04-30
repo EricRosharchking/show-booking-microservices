@@ -4,7 +4,6 @@
 		<groupId>com.liyuan.hong</groupId>
 		<artifactId>show-booking</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
-		<relativePath />
 	</parent>
 	<artifactId>booking-cli</artifactId>
 	<name>booking-cli</name>
@@ -23,6 +22,15 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+			</plugin>
 		</plugins>
+		<resources>
+			<resource>
+				<directory>src\main\resources</directory>
+			</resource>
+		</resources>
 	</build>
 </project>

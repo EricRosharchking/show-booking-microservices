@@ -1,9 +1,18 @@
 package com.liyuan.hong.showbooking.controller;
 
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.web.client.RestTemplate;
+
 import com.liyuan.hong.showbooking.exception.AdminException;
 import com.liyuan.hong.showbooking.exception.BuyerException;
 
 public class AppBuyerController extends AppController {
+
+	RestTemplate restTemplate;
+	
+	public AppBuyerController(RestTemplateBuilder builder) {
+		this.restTemplate = builder.build();
+	}
 
 	@Override
 	public void process(Object[] args) throws Exception {

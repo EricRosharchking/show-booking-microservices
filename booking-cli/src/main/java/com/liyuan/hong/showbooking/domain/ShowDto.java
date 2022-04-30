@@ -19,6 +19,8 @@ public class ShowDto {
 	@Min(0)
 	@Max(60)
 	private int cancelWindow;
+	
+	private int 
 
 	public ShowDto(long id, int rows, int seats, int cancelWindow) {
 		super();
@@ -58,6 +60,11 @@ public class ShowDto {
 
 	public void setCancelWindow(int cancelWindow) {
 		this.cancelWindow = cancelWindow;
+	}
+
+	@Override
+	public String toString() {
+		return "ShowDto [id=" + id + ", rows=" + rows + ", seats=" + seats + ", cancelWindow=" + cancelWindow + "]";
 	}
 
 }

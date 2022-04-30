@@ -4,9 +4,11 @@ import static com.liyuan.hong.showbooking.domain.Operation.*;
 
 import java.util.Scanner;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 
 import com.liyuan.hong.showbooking.controller.AppAdminController;
 import com.liyuan.hong.showbooking.controller.AppBuyerController;
@@ -17,7 +19,15 @@ public class ShowBookingApplication implements CommandLineRunner {
 
 	private static final String BUYER = "buyer";
 	private static final String ADMIN = "admin";
+	
 	private AppController appController;
+	
+	private RestTemplateBuilder builder;
+	
+	@Autowired
+	public ShowBookingApplication(RestTemplateBuilder builder) {
+		this.builder = builder;
+	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(ShowBookingApplication.class, args);
@@ -25,12 +35,12 @@ public class ShowBookingApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		appController = new AppBuyerController();
-		if (args != null && args.length <= 1) {
-			displayWrongArgsErrorMsgAndExit();
+		appController = new AppBuyerController(builder);
+		if (args != null && args.length < 1) {
+			displayWrongArgsErrorMsgAndExit(args);
 		} else if (ADMIN.equalsIgnoreCase(args[0])) {
 			System.out.println("You are logged in as an ADMIN");
-			appController = new AppAdminController();
+			appController = new AppAdminController(builder);
 		} else if (BUYER.equalsIgnoreCase(args[0])) {
 			System.out.println("You are logged in as a BUYER");
 		} else {
@@ -54,14 +64,18 @@ public class ShowBookingApplication implements CommandLineRunner {
 		System.out.print("Bye");
 	}
 
-	private void displayWrongArgsErrorMsgAndExit() {
+	private void displayWrongArgsErrorMsgAndExit(String... args) {
 		System.out.println(
-				"Please run this app with exact one argument, either" + BUYER + " or " + ADMIN + " (case insensitive)");
+				"Please run this app with exact one argument, either " + BUYER + " or " + ADMIN + " (case insensitive)");
+		System.out.println("=========================================");
+		for (String arg: args) {
+			System.out.println(arg);
+		}
 		System.exit(0);
 	}
 
 	private Object[] parseCmd(String cmd) throws Exception {
-		Object[] args = new Object[4];
+		Object[] args = new Object[5];
 		String[] cmds = cmd.split(" ");
 		if (cmds.length < 2) {
 			throw new Exception("");
@@ -69,7 +83,7 @@ public class ShowBookingApplication implements CommandLineRunner {
 		String op = cmds[0];
 		if ("setup".equalsIgnoreCase(op)) {
 			args[0] = SETUP;
-			extractArgs(cmds, args, 3);
+			extractArgs(cmds, args, 4);
 		} else if ("view".equalsIgnoreCase(op)) {
 			args[0] = VIEW;
 			extractArgs(cmds, args, 1);
@@ -96,6 +110,8 @@ public class ShowBookingApplication implements CommandLineRunner {
 
 	private void extractArgs(String[] cmds, Object[] args, int num) {
 		switch (num) {
+		case 4:
+			args[4] = cmds[4];
 		case 3:
 			args[3] = cmds[3];
 		case 2:

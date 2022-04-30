@@ -26,6 +26,10 @@ public class Show {
 
 	@Column
 	private int cancelWindow;
+	
+	public Show() {
+		super();
+	}
 
 	public Show(long id, int rows, int seats, int availableSeats, int blockedSeats, int cancelWindow) {
 		super();

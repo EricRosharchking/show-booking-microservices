@@ -1,26 +1,63 @@
 package com.liyuan.hong.showbooking.controller;
 
+import java.util.Arrays;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import com.liyuan.hong.showbooking.domain.Operation;
 import com.liyuan.hong.showbooking.domain.ShowDto;
 import com.liyuan.hong.showbooking.exception.AdminException;
 import com.liyuan.hong.showbooking.exception.BuyerException;
 
 @Controller
 public class AppAdminController extends AppController {
+	Logger logger = LogManager.getLogger(AppAdminController.class);
 
-	RestTemplate rest;
+	RestTemplate restTemplate;
 
-	@Autowired
-	RestTemplateBuilder builder;
+	public AppAdminController(RestTemplateBuilder builder) {
+		this.restTemplate = builder.build();
+	}
 
 	@Override
 	public void process(Object[] args) throws Exception {
 		super.process(args);
+		logger.debug(args);
+		Operation op = (Operation) args[0];
+		switch (op) {
+		case SETUP:
+			setupShow((int) args[1], Integer.valueOf((String) args[2]), Integer.valueOf((String) args[3]),
+					Integer.valueOf((String) args[4]));
+			break;
+		case VIEW:
+			viewShow((int) args[1]);
+			break;
+		case REMOVE:
+			removeSeatsFromShow((int) args[1], Integer.valueOf((String) args[2]));
+			break;
+		case ADD:
+			addSeatsToShow((int) args[1], Integer.valueOf((String) args[2]));
+			break;
+		case AVAILABILITY:
+			checkShowAvailability((int) args[1]);
+			break;
+		case BOOK:
+			bookTicket((int) args[1], (String) args[2], (String) args[3]);
+			break;
+		case CANCEL:
+			cancelTicket((int) args[1], (String) args[2], Integer.valueOf((String) args[3]));
+			break;
+		default:
+			throw new Exception();
+		}
 	}
 
 	/**
@@ -34,11 +71,17 @@ public class AppAdminController extends AppController {
 	 */
 	@Override
 	public void setupShow(int showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException {
-		rest = builder.build();
-		boolean result = rest.postForObject("http://localhost/shows/setup",
-				new ShowDto(showId, numOfRows, numOfSeatsPerRow, cancelWindow), Boolean.class);
-		String ouput = result ? "succeeded" : "failed";
-		System.out.printf("Setup show %s", ouput);
+		logger.debug("Setup Show");
+		logger.debug("RestTemplate Built %n");
+		String output = "failed";
+		try {
+			boolean result = restTemplate.postForObject("http://localhost:8080/shows/setup",
+					new ShowDto(showId, numOfRows, numOfSeatsPerRow, cancelWindow), Boolean.class);
+			output = result ? "succeeded" : output;
+		} catch (RestClientException e) {
+			logger.info("Rest Server is not Responding");
+		}
+		logger.printf(Level.INFO, "Setup show %s%n", output);
 	}
 
 	/**
@@ -50,7 +93,13 @@ public class AppAdminController extends AppController {
 	 */
 	@Override
 	public void viewShow(int showId) throws BuyerException {
-		// TODO Auto-generated method stub
+		logger.debug("View Show");
+		try {
+			ShowDto showDto = restTemplate.getForObject(null, ShowDto.class);
+			logger.printf(Level.INFO, "View Show %s%n", showDto.toString());
+		} catch (RestClientException e) {
+			logger.info("Rest Server is not Responding");
+		}
 
 	}
 
