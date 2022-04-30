@@ -11,7 +11,7 @@ public class AppBuyerController extends AppController {
 	}
 
 	@Override
-	public void setupShow(int showId, int numOfRows, int numOfSeatsPerRow) throws BuyerException {
+	public void setupShow(int showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException {
 		throw new BuyerException();
 	}
 

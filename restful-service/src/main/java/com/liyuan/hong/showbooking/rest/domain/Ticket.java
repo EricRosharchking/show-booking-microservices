@@ -1,5 +1,7 @@
 package com.liyuan.hong.showbooking.rest.domain;
 
+import java.util.Set;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -21,7 +23,7 @@ public class Ticket {
 	private Show show;
 	
 	@OneToMany
-	private BookedRow bookedRow;
+	private Set<BookedRow> bookedRow;
 
 
 	public Show getShow() {

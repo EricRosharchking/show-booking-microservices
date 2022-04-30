@@ -4,6 +4,7 @@
 		<groupId>com.liyuan.hong</groupId>
 		<artifactId>show-booking</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
+		<relativePath />
 	</parent>
 	<artifactId>booking-cli</artifactId>
 	<name>booking-cli</name>
@@ -16,4 +17,12 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
 </project>

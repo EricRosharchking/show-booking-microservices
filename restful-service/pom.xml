@@ -4,6 +4,7 @@
 		<groupId>com.liyuan.hong</groupId>
 		<artifactId>show-booking</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
+		<relativePath />
 	</parent>
 	<artifactId>restful-service</artifactId>
 	<name>restful-service</name>
@@ -17,4 +18,37 @@
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
+		<!-- 
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>copy</id>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>copy</goal>
+                    </goals>
+                    <configuration>
+                        <artifactItems>
+                            <artifactItem>
+                                <groupId>com.liyuan.hong</groupId>
+                                <artifactId>booking-cli</artifactId>
+                                <version>0.0.1-SNAPSHOT</version>
+                                <includes>**/*Dto.java</includes>
+                            </artifactItem>
+                        </artifactItems>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+		</plugins>
+	</build>
+        -->
 </project>

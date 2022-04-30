@@ -10,7 +10,7 @@ public abstract class AppController {
 		Operation op = (Operation) args[0];
 		switch (op) {
 		case SETUP:
-			setupShow((int)args[1], Integer.valueOf((String) args[2]), Integer.valueOf((String) args[3]));
+			setupShow((int)args[1], Integer.valueOf((String) args[2]), Integer.valueOf((String) args[3], Integer.valueOf((String) args[4])), 0);
 			break;
 		case VIEW:
 			viewShow((int)args[1]);
@@ -35,7 +35,7 @@ public abstract class AppController {
 		}
 	}
 
-	public abstract void setupShow(int showId, int numOfRows, int numOfSeatsPerRow) throws BuyerException;
+	public abstract void setupShow(int showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException;
 
 	public abstract void viewShow(int showId) throws BuyerException;
 

@@ -1,20 +1,22 @@
 package com.liyuan.hong.showbooking.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.client.RestTemplate;
 
+import com.liyuan.hong.showbooking.domain.ShowDto;
 import com.liyuan.hong.showbooking.exception.AdminException;
 import com.liyuan.hong.showbooking.exception.BuyerException;
 
+@Controller
 public class AppAdminController extends AppController {
-	
+
 	RestTemplate rest;
-	
-	@Bean
-	public void restTemplate(RestTemplateBuilder builder) {
-		rest = builder.build();
-	}
+
+	@Autowired
+	RestTemplateBuilder builder;
 
 	@Override
 	public void process(Object[] args) throws Exception {
@@ -31,8 +33,12 @@ public class AppAdminController extends AppController {
 	 * @throws BuyerException
 	 */
 	@Override
-	public void setupShow(int showId, int numOfRows, int numOfSeatsPerRow) throws BuyerException {
-		
+	public void setupShow(int showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException {
+		rest = builder.build();
+		boolean result = rest.postForObject("http://localhost/shows/setup",
+				new ShowDto(showId, numOfRows, numOfSeatsPerRow, cancelWindow), Boolean.class);
+		String ouput = result ? "succeeded" : "failed";
+		System.out.printf("Setup show %s", ouput);
 	}
 
 	/**
