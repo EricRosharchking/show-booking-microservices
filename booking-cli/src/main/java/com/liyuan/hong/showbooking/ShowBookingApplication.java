@@ -13,17 +13,19 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import com.liyuan.hong.showbooking.controller.AppAdminController;
 import com.liyuan.hong.showbooking.controller.AppBuyerController;
 import com.liyuan.hong.showbooking.controller.AppController;
+import com.liyuan.hong.showbooking.exception.AdminException;
+import com.liyuan.hong.showbooking.exception.BuyerException;
 
 @SpringBootApplication
 public class ShowBookingApplication implements CommandLineRunner {
 
 	private static final String BUYER = "buyer";
 	private static final String ADMIN = "admin";
-	
+
 	private AppController appController;
-	
+
 	private RestTemplateBuilder builder;
-	
+
 	@Autowired
 	public ShowBookingApplication(RestTemplateBuilder builder) {
 		this.builder = builder;
@@ -56,8 +58,15 @@ public class ShowBookingApplication implements CommandLineRunner {
 				try {
 					Object[] ins = parseCmd(cmd);
 					appController.process(ins);
-				} catch (Exception e) {
+				} catch (AdminException e) {
+					System.err.printf("Command [%s] not allowed for ADMIN", cmd);
+				} catch (BuyerException e) {
+					System.err.printf("Command [%s] not allowed for BUYER", cmd);
+				} catch (RuntimeException e) {
+					System.err.println(e.getMessage());
 					displayWrongCmdErrorMsg();
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}
@@ -65,10 +74,10 @@ public class ShowBookingApplication implements CommandLineRunner {
 	}
 
 	private void displayWrongArgsErrorMsgAndExit(String... args) {
-		System.out.println(
-				"Please run this app with exact one argument, either " + BUYER + " or " + ADMIN + " (case insensitive)");
+		System.out.println("Please run this app with exact one argument, either " + BUYER + " or " + ADMIN
+				+ " (case insensitive)");
 		System.out.println("=========================================");
-		for (String arg: args) {
+		for (String arg : args) {
 			System.out.println(arg);
 		}
 		System.exit(0);
@@ -78,7 +87,7 @@ public class ShowBookingApplication implements CommandLineRunner {
 		Object[] args = new Object[5];
 		String[] cmds = cmd.split(" ");
 		if (cmds.length < 2) {
-			throw new Exception("");
+			throw new RuntimeException("Command should have at least one operation and one argument");
 		}
 		String op = cmds[0];
 		if ("setup".equalsIgnoreCase(op)) {
@@ -103,7 +112,7 @@ public class ShowBookingApplication implements CommandLineRunner {
 			args[0] = CANCEL;
 			extractArgs(cmds, args, 3);
 		} else {
-			throw new Exception("");
+			throw new RuntimeException("Command not recognised");
 		}
 		return args;
 	}
@@ -117,13 +126,16 @@ public class ShowBookingApplication implements CommandLineRunner {
 		case 2:
 			args[2] = cmds[2];
 		case 1:
-			args[1] = Integer.valueOf(cmds[1]);
+			args[1] = Long.valueOf(cmds[1]);
 		}
 	}
 
 	private void displayWrongCmdErrorMsg() {
-		// TODO Auto-generated method stub
-
+		if (appController instanceof AppAdminController) {
+			System.err.println("Please Enter a command of <setup|view|remove|add> with corresponding space separated inputs");
+		} else {
+			System.err.println("Please Enter a command of <availability|book|cancel> with corresponding space separated inputs");
+		}
 	}
 
 }

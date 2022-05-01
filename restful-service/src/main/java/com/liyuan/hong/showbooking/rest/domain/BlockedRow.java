@@ -45,11 +45,11 @@ public class BlockedRow {
 		this.show = show;
 	}
 
-	public Character getRow() {
+	public char getRow() {
 		return rowChar;
 	}
 
-	public void setRow(Character row) {
+	public void setRow(char row) {
 		this.rowChar = row;
 	}
 

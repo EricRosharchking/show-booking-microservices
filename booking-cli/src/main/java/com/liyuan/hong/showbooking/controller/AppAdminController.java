@@ -1,63 +1,43 @@
 package com.liyuan.hong.showbooking.controller;
 
-import java.util.Arrays;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.liyuan.hong.showbooking.domain.Operation;
-import com.liyuan.hong.showbooking.domain.ShowDto;
+import com.liyuan.hong.showbooking.domain.TicketDto;
 import com.liyuan.hong.showbooking.exception.AdminException;
 import com.liyuan.hong.showbooking.exception.BuyerException;
 
+import net.minidev.json.JSONObject;
+
 @Controller
 public class AppAdminController extends AppController {
+	
+	private final String END_POINT= "http://localhost:8080/show/";
+	
 	Logger logger = LogManager.getLogger(AppAdminController.class);
 
-	RestTemplate restTemplate;
+	private RestTemplate restTemplate;
+	private HttpHeaders headers;
 
+	@Autowired
 	public AppAdminController(RestTemplateBuilder builder) {
 		this.restTemplate = builder.build();
-	}
-
-	@Override
-	public void process(Object[] args) throws Exception {
-		super.process(args);
-		logger.debug(args);
-		Operation op = (Operation) args[0];
-		switch (op) {
-		case SETUP:
-			setupShow((int) args[1], Integer.valueOf((String) args[2]), Integer.valueOf((String) args[3]),
-					Integer.valueOf((String) args[4]));
-			break;
-		case VIEW:
-			viewShow((int) args[1]);
-			break;
-		case REMOVE:
-			removeSeatsFromShow((int) args[1], Integer.valueOf((String) args[2]));
-			break;
-		case ADD:
-			addSeatsToShow((int) args[1], Integer.valueOf((String) args[2]));
-			break;
-		case AVAILABILITY:
-			checkShowAvailability((int) args[1]);
-			break;
-		case BOOK:
-			bookTicket((int) args[1], (String) args[2], (String) args[3]);
-			break;
-		case CANCEL:
-			cancelTicket((int) args[1], (String) args[2], Integer.valueOf((String) args[3]));
-			break;
-		default:
-			throw new Exception();
-		}
+		logger.debug("RestTemplate Built");
+		headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		logger.debug("HttpHeaders set");
 	}
 
 	/**
@@ -70,18 +50,27 @@ public class AppAdminController extends AppController {
 	 * @throws BuyerException
 	 */
 	@Override
-	public void setupShow(int showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException {
+	public void setupShow(long showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException {
 		logger.debug("Setup Show");
-		logger.debug("RestTemplate Built %n");
 		String output = "failed";
 		try {
-			boolean result = restTemplate.postForObject("http://localhost:8080/shows/setup",
-					new ShowDto(showId, numOfRows, numOfSeatsPerRow, cancelWindow), Boolean.class);
+			boolean result = restTemplate.postForObject(END_POINT +showId +"/setup",
+					prepareShowDto(showId, numOfRows, numOfSeatsPerRow, cancelWindow), Boolean.class);
 			output = result ? "succeeded" : output;
 		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
+			return;
 		}
 		logger.printf(Level.INFO, "Setup show %s%n", output);
+	}
+	
+	private JSONObject prepareShowDto(long showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) {
+		JSONObject obj= new JSONObject().appendField("id", showId)
+				.appendField("rows", numOfRows)
+				.appendField("seats", numOfSeatsPerRow)
+				.appendField("cancelWindow", cancelWindow);
+		logger.debug(obj.toJSONString());
+		return obj;
 	}
 
 	/**
@@ -92,14 +81,22 @@ public class AppAdminController extends AppController {
 	 * @throws BuyerException
 	 */
 	@Override
-	public void viewShow(int showId) throws BuyerException {
+	public void viewShow(long showId) throws BuyerException {
 		logger.debug("View Show");
 		try {
-			ShowDto showDto = restTemplate.getForObject(null, ShowDto.class);
-			logger.printf(Level.INFO, "View Show %s%n", showDto.toString());
+			ResponseEntity<TicketDto[]> response = restTemplate.getForEntity(END_POINT + showId + "/view",TicketDto[].class);
+			if (response == null || !response.hasBody() || response.getBody().length == 0) {
+				logger.info("The Show has not been booked");
+				return;
+			}
+			for (TicketDto ticket: response.getBody()) {
+				logger.printf(Level.INFO, "View Show %s%n", ticket.toString());
+			}
 		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
+			return;
 		}
+		logger.info("View Show succeeded");
 
 	}
 
@@ -111,9 +108,16 @@ public class AppAdminController extends AppController {
 	 * @throws BuyerException
 	 */
 	@Override
-	public void removeSeatsFromShow(int showId, int numOfSeats) throws BuyerException {
-		// TODO Auto-generated method stub
-
+	public void removeSeatsFromShow(long showId, int numOfSeats) throws BuyerException {
+		logger.debug("Remove seats from Show");
+		String result = "failed";
+		try {
+			result = restTemplate.postForObject(END_POINT + showId + "/removeSeats?seats={numOfSeats}", null, String.class, numOfSeats);
+		}catch (RestClientException e) {
+			logger.info("Rest Server is not Responding");
+			return;
+		}
+		logger.printf(Level.INFO, "%s.%n", numOfSeats, showId, result);
 	}
 
 	/**
@@ -124,24 +128,103 @@ public class AppAdminController extends AppController {
 	 * @throws BuyerException
 	 */
 	@Override
-	public void addSeatsToShow(int showId, int numOfRows) throws BuyerException {
-		// TODO Auto-generated method stub
-
+	public void addSeatsToShow(long showId, int numOfRows) throws BuyerException {
+		logger.debug("Add rows to Show");
+		String result = "failed";
+		try {
+			boolean status = restTemplate.postForObject(END_POINT + showId + "/addRows?rows={numOfRows}", null, Boolean.class, numOfRows);
+			result = status ? "succeeded" : result;
+		} catch(RestClientException e) {
+			logger.info("Rest Server is not Responding");
+			return;
+		}
+		logger.printf(Level.INFO, "Adding %d rows to Show %d %s.%n", numOfRows, showId, result);
 	}
 
 	@Override
-	public void checkShowAvailability(int showId) throws AdminException {
-		throw new AdminException();
+	public void process(Object[] args) throws Exception {
+		super.process(args);
+	}
+	
+	@Override
+	public void checkShowAvailability(long showId) throws AdminException {
+		logger.debug("Check Show Availability");
+		try {
+		ResponseEntity<String[]> response = restTemplate.exchange(END_POINT + showId + "/availability", HttpMethod.GET,
+				null, String[].class);
+		logger.debug(response.getHeaders().toString());
+		if (response.getStatusCode() == HttpStatus.OK) {
+			for (String str : response.getBody()) {
+				System.out.println(str);
+			}
+			logger.debug("Check Show Availability succeeded");
+			return;
+		} else {
+			logger.info("Check Show Availability failed");
+		}
+		} catch (RestClientException e) {
+			logger.info("Rest Server is not Responding");
+		}
 	}
 
+	/**
+	 * Book <Show Number> <Phone#> <Comma separated list of seats> (This must
+	 * generate a unique ticket # and display)
+	 * 
+	 * @param showId
+	 * @param phoneNum
+	 * @param csSeats
+	 * @throws AdminException
+	 */
 	@Override
-	public void bookTicket(int showId, String phoneNum, String csSeats) throws AdminException {
-		throw new AdminException();
+	public void bookTicket(long showId, String phoneNum, String csSeats) throws AdminException {
+		logger.debug("Book Ticket");
+
+		HttpEntity<String> request = new HttpEntity<String>(prepareBookingDto(showId, phoneNum, csSeats), headers);
+		long ticketId = restTemplate.postForObject(END_POINT + showId + "/book", request, Long.class);
+		if (ticketId < 0) {
+			System.out.printf("Booking failed for Show [%d], tickets [%s]", showId, csSeats);
+			return;
+		}
+		System.out.printf("Booking succeeded, your ticket Id is %d %n", ticketId);
 	}
 
-	@Override
-	public void cancelTicket(int showId, String phoneNum, int ticketNum) throws AdminException {
-		throw new AdminException();
+	private String prepareBookingDto(long showId, String phoneNum, String csSeats) {
+		JSONObject obj = new JSONObject().appendField("id", showId).appendField("phoneNum", phoneNum)
+				.appendField("csSeats", csSeats);
+		logger.debug(obj.toJSONString());
+		return obj.toString();
 	}
+
+	/**
+	 * Cancel <Show Number> <Phone#> <Ticket#>
+	 * 
+	 * @param showId
+	 * @param phoneNum
+	 * @param ticketNum
+	 * @throws AdminException
+	 */
+	@Override
+	public void cancelTicket(long showId, String phoneNum, long ticketNum) throws AdminException {
+		logger.debug("Cancel Ticket");
+
+		restTemplate.exchange(END_POINT + "{showId}/cancel?ticketNum={ticketNum},phoneNum={phoneNum}",
+				HttpMethod.DELETE, null, String.class, showId, phoneNum, ticketNum);
+	}
+
+//	@Override
+//	public void checkShowAvailability(long showId) throws AdminException {
+//		throw new AdminException();
+//	}
+//
+//	@Override
+//	public void bookTicket(long showId, String phoneNum, String csSeats) throws AdminException {
+//		throw new AdminException();
+//	}
+//
+//	@Override
+//	public void cancelTicket(long showId, String phoneNum, long ticketId) throws AdminException {
+//		throw new AdminException();
+//	}
 
 }

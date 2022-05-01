@@ -24,6 +24,10 @@ public class AvailableRow {
 	@Column
 	private int seats;
 
+	public AvailableRow() {
+		super();
+	}
+
 	public AvailableRow(Show show, char row) {
 		setShow(show);
 		setRow(row);
@@ -59,5 +63,10 @@ public class AvailableRow {
 
 	public void setSeats(int seats) {
 		this.seats = seats;
+	}
+
+	@Override
+	public String toString() {
+		return "AvailableRow [rowId=" + rowId + ", show=" + show + ", rowChar=" + rowChar + ", seats=" + seats + "]";
 	}
 }

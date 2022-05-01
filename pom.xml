@@ -17,6 +17,7 @@
 	<modules>
 		<module>booking-cli</module>
 		<module>restful-service</module>
+		<module>web-domain</module>
 	</modules>
 
 	<properties>

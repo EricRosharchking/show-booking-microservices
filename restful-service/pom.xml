@@ -13,9 +13,16 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.liyuan.hong</groupId>
-			<artifactId>booking-cli</artifactId>
+			<artifactId>web-domain</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
+		</dependency> <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-collections4</artifactId>
+			<version>4.4</version>
 		</dependency>
+
+
 	</dependencies>
 
 	<build>
@@ -44,7 +51,7 @@
 						</goals>
 						<configuration>
 							<sources>
-								<source>..\booking-cli\src\main\java\com\liyuan\hong\showbooking\domain</source>
+								<source>..\web-domain\src\main\java\com\liyuan\hong\showbooking\domain</source>
 							</sources>
 						</configuration>
 					</execution>

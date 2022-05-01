@@ -19,8 +19,6 @@ public class ShowDto {
 	@Min(0)
 	@Max(60)
 	private int cancelWindow;
-	
-	private int 
 
 	public ShowDto(long id, int rows, int seats, int cancelWindow) {
 		super();

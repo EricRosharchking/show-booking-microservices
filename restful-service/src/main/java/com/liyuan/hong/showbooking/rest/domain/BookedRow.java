@@ -22,6 +22,10 @@ public class BookedRow {
 	@Column
 	private int seats;
 
+	public BookedRow() {
+		super();
+	}
+
 	public BookedRow(AvailableRow row) {
 		setRow(row);
 	}

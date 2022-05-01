@@ -26,12 +26,36 @@ public class Ticket {
 	private Set<BookedRow> bookedRow;
 
 
+	public Ticket() {
+		super();
+	}
+
 	public Show getShow() {
 		return show;
 	}
 
 	public void setShow(Show show) {
 		this.show = show;
+	}
+
+	public long getId() {
+		return id;
+	}
+
+	public void setId(long id) {
+		this.id = id;
+	}
+
+	public Set<BookedRow> getBookedRow() {
+		return bookedRow;
+	}
+
+	public void setBookedRow(Set<BookedRow> bookedRow) {
+		this.bookedRow = bookedRow;
+	}
+
+	public Set<String> getBookedSeats() {
+		return Set.of(bookedRow.stream().map(r -> r.getSeats()).toArray(String[]::new));
 	}
 
 }
