@@ -53,16 +53,16 @@ public class ShowRestController {
 
 	@PostMapping(path = "/setup", consumes = "application/json", produces = "application/json")
 	@ResponseStatus(HttpStatus.CREATED)
-	public Boolean setupShow(@RequestBody ShowDto showDto) {
+	public ResponseEntity<Boolean> setupShow(@RequestBody ShowDto showDto) {
 		logger.printf(Level.INFO, "Received incoming request to setup show: %s%n", showDto.toString());
 		try {
 			showService.setupShow(showDto.getId(), showDto.getRows(), showDto.getSeats(), showDto.getCancelWindow());
-		} catch (Exception e) {
+		} catch (IllegalStateException e) {
 			logger.error(e);
-			return false;
+			return ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).body(false);
 		}
 		logger.info("Request to setup show: " + showDto.toString() + " completed");
-		return true;
+		return ResponseEntity.created(null).body(true);
 	}
 
 	@GetMapping(path = "/view", produces = "application/json")

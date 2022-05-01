@@ -49,7 +49,13 @@ public class ShowService {
 
 	public Show setupShow(long showId, int rows, int seats, int cancelWindow) {
 		if (showRepo.existsById(showId)) {
-			throw new IllegalStateException("Show of Id " + showId + " already exist");
+			throw new IllegalStateException("Show of Id " + showId + " already exists");
+		} else if (rows > MAX_ROWS || rows < 1) {
+			throw new IllegalStateException("Rows of " + rows + " exceeds limits of 0 ~" + MAX_ROWS);
+		} else if (seats > MAX_SEATS || seats < 1) {
+			throw new IllegalStateException("Seats of " + seats + " exceeds limits of 0 ~ " + MAX_SEATS + " per row");
+		} else if (cancelWindow < 0) {
+			throw new IllegalStateException("CancelWindow cannot be negative.");
 		}
 		Show show = showRepo
 				.save(new Show(showId, rows, seats, rows * seats, MAX_CAPACITY - rows * seats, cancelWindow));
@@ -93,7 +99,7 @@ public class ShowService {
 				availableRows.add(available);
 			}
 		}
-		for (AvailableRow row: availableRows) {
+		for (AvailableRow row : availableRows) {
 			logger.debug(row.toString());
 		}
 		return availableRows;
@@ -152,12 +158,12 @@ public class ShowService {
 
 	private String rowSeatsToString(char row, int seats) {
 		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i< 10; i++) {
+		for (int i = 0; i < 10; i++) {
 			int seat = 1 << i;
 			if ((seat & seats) != (seat)) {
-				sb.append(row).append(i+1).append(",");
+				sb.append(row).append(i + 1).append(",");
 			}
 		}
-		return sb.replace(sb.length()-1, sb.length(), ".").toString();
+		return sb.replace(sb.length() - 1, sb.length(), ".").toString();
 	}
 }

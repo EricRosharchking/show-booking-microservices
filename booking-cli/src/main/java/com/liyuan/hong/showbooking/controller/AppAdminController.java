@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -23,9 +24,9 @@ import net.minidev.json.JSONObject;
 
 @Controller
 public class AppAdminController extends AppController {
-	
-	private final String END_POINT= "http://localhost:8080/show/";
-	
+
+	private final String END_POINT = "http://localhost:8080/show/";
+
 	Logger logger = LogManager.getLogger(AppAdminController.class);
 
 	private RestTemplate restTemplate;
@@ -54,21 +55,22 @@ public class AppAdminController extends AppController {
 		logger.debug("Setup Show");
 		String output = "failed";
 		try {
-			boolean result = restTemplate.postForObject(END_POINT +showId +"/setup",
+			ResponseEntity<Boolean> response = restTemplate.postForEntity(END_POINT + showId + "/setup",
 					prepareShowDto(showId, numOfRows, numOfSeatsPerRow, cancelWindow), Boolean.class);
-			output = result ? "succeeded" : output;
+			output = response.getBody() ? "succeeded" : output;
+		} catch (HttpStatusCodeException e) {
+			System.out.printf("Setting up Show failed, server returned error is [%s]%n",
+					e.getResponseHeaders().getFirst("reasonOfFailure"));
 		} catch (RestClientException e) {
-			logger.info("Rest Server is not Responding");
+			logger.info("Rest Server is not Responding or is having error");
 			return;
 		}
 		logger.printf(Level.INFO, "Setup show %s%n", output);
 	}
-	
+
 	private JSONObject prepareShowDto(long showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) {
-		JSONObject obj= new JSONObject().appendField("id", showId)
-				.appendField("rows", numOfRows)
-				.appendField("seats", numOfSeatsPerRow)
-				.appendField("cancelWindow", cancelWindow);
+		JSONObject obj = new JSONObject().appendField("id", showId).appendField("rows", numOfRows)
+				.appendField("seats", numOfSeatsPerRow).appendField("cancelWindow", cancelWindow);
 		logger.debug(obj.toJSONString());
 		return obj;
 	}
@@ -84,12 +86,13 @@ public class AppAdminController extends AppController {
 	public void viewShow(long showId) throws BuyerException {
 		logger.debug("View Show");
 		try {
-			ResponseEntity<TicketDto[]> response = restTemplate.getForEntity(END_POINT + showId + "/view",TicketDto[].class);
+			ResponseEntity<TicketDto[]> response = restTemplate.getForEntity(END_POINT + showId + "/view",
+					TicketDto[].class);
 			if (response == null || !response.hasBody() || response.getBody().length == 0) {
 				logger.info("The Show has not been booked");
 				return;
 			}
-			for (TicketDto ticket: response.getBody()) {
+			for (TicketDto ticket : response.getBody()) {
 				logger.printf(Level.INFO, "View Show %s%n", ticket.toString());
 			}
 		} catch (RestClientException e) {
@@ -112,8 +115,9 @@ public class AppAdminController extends AppController {
 		logger.debug("Remove seats from Show");
 		String result = "failed";
 		try {
-			result = restTemplate.postForObject(END_POINT + showId + "/removeSeats?seats={numOfSeats}", null, String.class, numOfSeats);
-		}catch (RestClientException e) {
+			result = restTemplate.postForObject(END_POINT + showId + "/removeSeats?seats={numOfSeats}", null,
+					String.class, numOfSeats);
+		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
 			return;
 		}
@@ -132,9 +136,10 @@ public class AppAdminController extends AppController {
 		logger.debug("Add rows to Show");
 		String result = "failed";
 		try {
-			boolean status = restTemplate.postForObject(END_POINT + showId + "/addRows?rows={numOfRows}", null, Boolean.class, numOfRows);
+			boolean status = restTemplate.postForObject(END_POINT + showId + "/addRows?rows={numOfRows}", null,
+					Boolean.class, numOfRows);
 			result = status ? "succeeded" : result;
-		} catch(RestClientException e) {
+		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
 			return;
 		}
@@ -145,23 +150,23 @@ public class AppAdminController extends AppController {
 	public void process(Object[] args) throws Exception {
 		super.process(args);
 	}
-	
+
 	@Override
 	public void checkShowAvailability(long showId) throws AdminException {
 		logger.debug("Check Show Availability");
 		try {
-		ResponseEntity<String[]> response = restTemplate.exchange(END_POINT + showId + "/availability", HttpMethod.GET,
-				null, String[].class);
-		logger.debug(response.getHeaders().toString());
-		if (response.getStatusCode() == HttpStatus.OK) {
-			for (String str : response.getBody()) {
-				System.out.println(str);
+			ResponseEntity<String[]> response = restTemplate.exchange(END_POINT + showId + "/availability",
+					HttpMethod.GET, null, String[].class);
+			logger.debug(response.getHeaders().toString());
+			if (response.getStatusCode() == HttpStatus.OK) {
+				for (String str : response.getBody()) {
+					System.out.println(str);
+				}
+				logger.debug("Check Show Availability succeeded");
+				return;
+			} else {
+				logger.info("Check Show Availability failed");
 			}
-			logger.debug("Check Show Availability succeeded");
-			return;
-		} else {
-			logger.info("Check Show Availability failed");
-		}
 		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
 		}
