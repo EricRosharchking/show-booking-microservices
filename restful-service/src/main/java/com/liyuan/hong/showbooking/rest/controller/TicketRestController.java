@@ -37,7 +37,7 @@ public class TicketRestController {
 
 	@GetMapping(path = "/view", produces = "application/json")
 	public ResponseEntity<TicketDto[]> viewTickets(@PathVariable(value = "showNum") long showId) {
-		logger.printf(Level.INFO, "Received incoming request to view show: [%d]%n", showId);
+		logger.printf(Level.INFO, "Received incoming request to view booked tickets for show: [%d]%n", showId);
 		ResponseEntity<TicketDto[]> response = ResponseEntity.noContent().build();
 		try {
 			TicketDto[] ticketDtos = showService.viewShow(showId).stream()

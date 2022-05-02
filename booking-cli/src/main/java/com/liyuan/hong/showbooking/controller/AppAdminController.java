@@ -23,7 +23,8 @@ import net.minidev.json.JSONObject;
 @Controller
 public class AppAdminController extends AppController {
 
-	private final String END_POINT = "http://localhost:8080/show/";
+	private final String SHOW_END_POINT = "http://localhost:8080/show/";
+	private final String TICKET_END_POINT = "http://localhost:8080/ticket/";
 	private final String SEND_REQ = "Sending Request to [%s]%n";
 
 	Logger logger = LogManager.getLogger(AppAdminController.class);
@@ -54,7 +55,7 @@ public class AppAdminController extends AppController {
 		logger.printf(Level.DEBUG, SEND_REQ,"Setup Show");
 		String output = "failed";
 		try {
-			ResponseEntity<Boolean> response = restTemplate.postForEntity(END_POINT + showNum + "/setup",
+			ResponseEntity<Boolean> response = restTemplate.postForEntity(SHOW_END_POINT + showNum + "/setup",
 					prepareShowDto(showNum, numOfRows, numOfSeatsPerRow, cancelWindow), Boolean.class);
 			output = response.getBody() ? "succeeded" : output;
 		} catch (HttpStatusCodeException e) {
@@ -85,7 +86,7 @@ public class AppAdminController extends AppController {
 	public void viewShow(long showNum) throws BuyerException {
 		logger.printf(Level.DEBUG, SEND_REQ, "View Show");
 		try {
-			ResponseEntity<TicketDto[]> response = restTemplate.getForEntity(END_POINT + showNum + "/view",
+			ResponseEntity<TicketDto[]> response = restTemplate.getForEntity(TICKET_END_POINT + showNum + "/view",
 					TicketDto[].class);
 			if (response.getStatusCode() == HttpStatus.OK) {
 				if (response.getBody().length == 0) {
@@ -103,7 +104,6 @@ public class AppAdminController extends AppController {
 			return;
 		}
 		logger.info("View Show succeeded");
-
 	}
 
 	/**
@@ -118,7 +118,7 @@ public class AppAdminController extends AppController {
 		logger.printf(Level.DEBUG, SEND_REQ,"Remove seats from Show");
 		String result = "failed";
 		try {
-			result = restTemplate.postForObject(END_POINT + showNum + "/removeSeats?seats={numOfSeats}", null,
+			result = restTemplate.postForObject(SHOW_END_POINT + showNum + "/removeSeats?seats={numOfSeats}", null,
 					String.class, numOfSeats);
 		} catch (HttpStatusCodeException e) {
 			System.out.printf("Removing seats from Show failed, server returned error is [%s]%n",
@@ -142,7 +142,7 @@ public class AppAdminController extends AppController {
 		logger.printf(Level.DEBUG, SEND_REQ,"Add rows to Show");
 		String result = "failed";
 		try {
-			boolean status = restTemplate.postForObject(END_POINT + showNum + "/addRows?rows={numOfRows}", null,
+			boolean status = restTemplate.postForObject(SHOW_END_POINT + showNum + "/addRows?rows={numOfRows}", null,
 					Boolean.class, numOfRows);
 			result = status ? "succeeded" : result;
 		} catch (HttpStatusCodeException e) {

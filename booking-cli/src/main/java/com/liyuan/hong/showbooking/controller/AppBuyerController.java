@@ -22,7 +22,8 @@ import net.minidev.json.JSONObject;
 
 public class AppBuyerController extends AppController {
 
-	private final String END_POINT = "http://localhost:8080/show/";
+	private final String SHOW_END_POINT = "http://localhost:8080/show/";
+	private final String TICKET_END_POINT = "http://localhost:8080/ticket/";
 	private final String SEND_REQ = "Sending Request to [%s]%n";
 	Logger logger = LogManager.getLogger(AppAdminController.class);
 
@@ -42,7 +43,7 @@ public class AppBuyerController extends AppController {
 	public void checkShowAvailability(long showNum) throws AdminException {
 		logger.printf(Level.DEBUG, SEND_REQ,"Check Show Availability");
 		try {
-			ResponseEntity<String[]> response = restTemplate.exchange(END_POINT + showNum + "/availability",
+			ResponseEntity<String[]> response = restTemplate.exchange(SHOW_END_POINT + showNum + "/availability",
 					HttpMethod.GET, null, String[].class);
 			logger.debug(response.getHeaders().toString());
 			if (response.getStatusCode() == HttpStatus.OK) {
@@ -73,7 +74,7 @@ public class AppBuyerController extends AppController {
 		logger.printf(Level.DEBUG, SEND_REQ,"Book Ticket");
 		HttpEntity<String> request = new HttpEntity<String>(prepareBookingDto(showNum, phoneNum, csSeats), headers);
 		try {
-			ResponseEntity<Long> response = restTemplate.postForEntity(END_POINT + showNum + "/book", request,
+			ResponseEntity<Long> response = restTemplate.postForEntity(TICKET_END_POINT + showNum + "/book", request,
 					Long.class);
 			System.out.printf("Booking succeeded, your ticket Id is %d %n", response.getBody());
 		} catch (HttpStatusCodeException e) {
@@ -104,7 +105,7 @@ public class AppBuyerController extends AppController {
 		logger.printf(Level.DEBUG, SEND_REQ, "Cancel Ticket");
 
 		try {
-			ResponseEntity<Boolean> response = restTemplate.exchange(END_POINT + "{showNum}/cancel?ticketNum={ticketNum}&phoneNum={phoneNum}",
+			ResponseEntity<Boolean> response = restTemplate.exchange(TICKET_END_POINT + "{showNum}/cancel?ticketNum={ticketNum}&phoneNum={phoneNum}",
 					HttpMethod.DELETE, null, Boolean.class, showNum, phoneNum, ticketNum);
 			System.out.printf("Cancel Ticket request %s%n", response.getBody() ? "succeeded" : "failed");
 		} catch (HttpStatusCodeException e) {
