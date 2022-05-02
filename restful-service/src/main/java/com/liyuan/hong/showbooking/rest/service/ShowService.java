@@ -1,7 +1,6 @@
 package com.liyuan.hong.showbooking.rest.service;
 
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,10 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.commons.collections4.IterableUtils;
@@ -24,12 +21,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import com.liyuan.hong.showbooking.rest.domain.AvailableRow;
-import com.liyuan.hong.showbooking.rest.domain.BlockedRow;
 import com.liyuan.hong.showbooking.rest.domain.BookedRow;
 import com.liyuan.hong.showbooking.rest.domain.Show;
 import com.liyuan.hong.showbooking.rest.domain.Ticket;
 import com.liyuan.hong.showbooking.rest.repo.AvailableRowRepository;
-import com.liyuan.hong.showbooking.rest.repo.BlockedRowRepository;
 import com.liyuan.hong.showbooking.rest.repo.BookedRowRepository;
 import com.liyuan.hong.showbooking.rest.repo.ShowRepository;
 import com.liyuan.hong.showbooking.rest.repo.TicketRepository;

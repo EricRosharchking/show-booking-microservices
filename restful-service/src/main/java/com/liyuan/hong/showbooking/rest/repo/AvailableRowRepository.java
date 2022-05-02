@@ -1,7 +1,5 @@
 package com.liyuan.hong.showbooking.rest.repo;
 
-import java.util.List;
-
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 
