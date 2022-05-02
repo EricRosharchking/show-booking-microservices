@@ -12,16 +12,13 @@ public class Show {
 	private long id;
 
 	@Column
-	private int rows;
+	private int numOfRows;
 
 	@Column
-	private int seats;
+	private int seatsPerRow;
 	
 	@Column
 	private int availableSeats;
-	
-	@Column
-	private int blockedSeats;
 
 	@Column
 	private int cancelWindow;
@@ -30,13 +27,12 @@ public class Show {
 		super();
 	}
 
-	public Show(long id, int rows, int seats, int availableSeats, int blockedSeats, int cancelWindow) {
+	public Show(long id, int numOfRows, int seatsPerRow, int availableSeats, int cancelWindow) {
 		super();
 		this.id = id;
-		this.rows = rows;
-		this.seats = seats;
+		this.numOfRows = numOfRows;
+		this.seatsPerRow = seatsPerRow;
 		this.availableSeats = availableSeats;
-		this.blockedSeats = blockedSeats;
 		this.cancelWindow = cancelWindow;
 	}
 
@@ -48,36 +44,28 @@ public class Show {
 		this.id = id;
 	}
 
-	public int getRows() {
-		return rows;
+	public int getNumOfRows() {
+		return numOfRows;
 	}
 
-	public void setRows(int rows) {
-		this.rows = rows;
+	public void setNumOfRows(int numOfRows) {
+		this.numOfRows = numOfRows;
 	}
 
-	public int getSeats() {
-		return seats;
+	public int getSeatsPerRow() {
+		return seatsPerRow;
 	}
 
-	public void setSeats(int seats) {
-		this.seats = seats;
+	public void setSeatsPerRow(int seatsPerRow) {
+		this.seatsPerRow = seatsPerRow;
 	}
 
 	public int getAvailableSeats() {
 		return availableSeats;
 	}
 
-	public void setAvailableSeats(int seats) {
-		this.availableSeats = seats;
-	}
-
-	public int getBlockedSeats() {
-		return blockedSeats;
-	}
-
-	public void setBlockedSeats(int seats) {
-		this.blockedSeats = seats;
+	public void setAvailableSeats(int seatsPerRow) {
+		this.availableSeats = seatsPerRow;
 	}
 
 	public int getCancelWindow() {

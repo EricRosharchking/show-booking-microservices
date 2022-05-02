@@ -21,9 +21,9 @@ public class DtoHelper {
 		Set<BookedRow> rows = t.getBookedRow();
 		for (BookedRow row: rows) {
 			char rowChar = row.getRow().getRowChar();
-			for (int i = 0; i < 10; i++) {
+			for (int i = 1; i <= 10; i++) {
 				if (((1<<i) & row.getSeats()) != 0) {
-					csSeats.add(rowChar+""+(i+1));
+					csSeats.add(rowChar+""+i);
 				}
 			}
 		}

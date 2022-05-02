@@ -44,6 +44,9 @@ public class ShowRestController {
 		} catch (IllegalStateException e) {
 			logger.error(e);
 			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).body(false);
+		}catch (Exception e) {
+			e.printStackTrace();
+			response = ResponseEntity.internalServerError().build();
 		}
 		logger.info("Request to setup show: " + showDto.toString() + " completed");
 		return response;
@@ -82,7 +85,7 @@ public class ShowRestController {
 		} catch (IllegalStateException e) {
 			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
 		} catch (Exception e) {
-			logger.error(e.getStackTrace());
+			e.printStackTrace();
 			response = ResponseEntity.internalServerError().build();
 		}
 		logger.printf(Level.INFO, "Completed incoming request to add rows to show%n");
@@ -99,9 +102,10 @@ public class ShowRestController {
 				response = ResponseEntity.ok().body(result);
 			}
 		} catch (IllegalStateException e) {
+			
 			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
 		} catch (Exception e) {
-			logger.error(e.getStackTrace());
+			e.printStackTrace();
 			response = ResponseEntity.internalServerError().build();
 		}
 		return response;

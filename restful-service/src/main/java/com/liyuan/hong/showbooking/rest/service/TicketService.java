@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.liyuan.hong.showbooking.rest.domain.AvailableRow;
 import com.liyuan.hong.showbooking.rest.domain.BookedRow;
@@ -25,7 +26,10 @@ import com.liyuan.hong.showbooking.rest.repo.ShowRepository;
 import com.liyuan.hong.showbooking.rest.repo.TicketRepository;
 
 @Service
+@Transactional
 public class TicketService {
+
+	private final int AVAILABLE_ROW = (2 << 10) - 2;
 
 	Logger logger = LogManager.getLogger(this.getClass());
 
@@ -60,9 +64,8 @@ public class TicketService {
 					"There are not enough available seats to book, please check availability and try again");
 		}
 		Set<BookedRow> bookedRows = new HashSet<>();
-//		prepareBookedRowsForShow(showId, bookingSeatsInRows);
 		Iterable<AvailableRow> availableRows = availableRowRepo
-				.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId, (1 << 10) - 1);
+				.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId, AVAILABLE_ROW);
 		logger.printf(Level.DEBUG, "Found %d available rows for show %d%n", IterableUtils.size(availableRows), showId);
 		for (AvailableRow r : availableRows) {
 			logger.printf(Level.DEBUG, "Found availableRow %c-%s%n", r.getRowChar(),
@@ -71,20 +74,24 @@ public class TicketService {
 		List<AvailableRow> rowsToBook = new ArrayList<>();
 		for (AvailableRow row : availableRows) {
 			int availableSeats = row.getSeats();
-			int bookingSeats = bookingSeatsInRows.get(row.getRowChar());
-			if ((availableSeats & bookingSeats) != 0) {
-				throw new IllegalStateException(
-						"One of the seats has been booked or blocked, please check availability and try again");
+			if (bookingSeatsInRows.containsKey(row.getRowChar())) {
+				int bookingSeats = bookingSeatsInRows.get(row.getRowChar());
+				if ((availableSeats & bookingSeats) != 0) {
+					logger.printf(Level.DEBUG, "AvailableRow is %c-%s, bookingSeats is %s%n", row.getRowChar(),
+							Integer.toBinaryString(row.getSeats()), Integer.toBinaryString(bookingSeats));
+					throw new IllegalStateException(
+							"One of the seats has been booked or blocked, please check availability and try again");
+				}
+				bookedRows.add(new BookedRow(row, bookingSeats));
+				row.setSeats(availableSeats ^ bookingSeats);
+				rowsToBook.add(row);
 			}
-			bookedRows.add(new BookedRow(row, bookingSeats));
-			row.setSeats(availableSeats ^ bookingSeats);
-			rowsToBook.add(row);
 		}
 		show.setAvailableSeats(show.getAvailableSeats() - numOfSeats);
 		Ticket t = new Ticket(show, phoneNum, LocalDateTime.now(), numOfSeats, bookedRows);
 		showRepo.save(show);
 		bookedRowRepo.saveAll(bookedRows);
-		return ticketRepo.save(t);
+		return t = ticketRepo.save(t);
 	}
 
 	private Map<Character, Integer> getBookingSeatsInRows(String csSeats) throws IllegalStateException {
@@ -102,7 +109,7 @@ public class TicketService {
 						"Seat number of " + seat + " exceeds limits between 1 and 10, abort Booking");
 			}
 			int bookingSeat = bookingSeatsInRows.getOrDefault(rowChar, 0);
-			bookingSeat |= (1 << (toBook - 1));
+			bookingSeat |= (1 << toBook);
 			totalSeatsToBook++;
 			bookingSeatsInRows.put(rowChar, bookingSeat);
 		}
