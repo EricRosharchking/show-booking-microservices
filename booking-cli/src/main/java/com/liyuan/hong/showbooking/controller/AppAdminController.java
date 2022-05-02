@@ -196,16 +196,20 @@ public class AppAdminController extends AppController {
 		logger.debug("Book Ticket");
 
 		HttpEntity<String> request = new HttpEntity<String>(prepareBookingDto(showId, phoneNum, csSeats), headers);
-		long ticketId = restTemplate.postForObject(END_POINT + showId + "/book", request, Long.class);
-		if (ticketId < 0) {
-			System.out.printf("Booking failed for Show [%d], tickets [%s]", showId, csSeats);
-			return;
+		try {
+			ResponseEntity<Long> response = restTemplate.postForEntity(END_POINT + showId + "/book", request,
+					Long.class);
+			System.out.printf("Booking succeeded, your ticket Id is %d %n", response.getBody());
+		} catch (HttpStatusCodeException e) {
+			System.out.printf("Booking ticket to Show failed, server returned error is [%s]%n",
+					e.getResponseHeaders().getFirst("reasonOfFailure"));
+		} catch (RestClientException e) {
+			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
 		}
-		System.out.printf("Booking succeeded, your ticket Id is %d %n", ticketId);
 	}
 
 	private String prepareBookingDto(long showId, String phoneNum, String csSeats) {
-		JSONObject obj = new JSONObject().appendField("id", showId).appendField("phoneNum", phoneNum)
+		JSONObject obj = new JSONObject().appendField("showId", showId).appendField("phoneNum", phoneNum)
 				.appendField("csSeats", csSeats);
 		logger.debug(obj.toJSONString());
 		return obj.toString();

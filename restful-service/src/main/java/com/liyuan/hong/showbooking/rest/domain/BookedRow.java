@@ -14,7 +14,7 @@ public class BookedRow {
 
 	@Id
 	@GeneratedValue
-	private long rowId;
+	private long id;
 
 	@OneToOne
 	private AvailableRow row;
@@ -26,16 +26,17 @@ public class BookedRow {
 		super();
 	}
 
-	public BookedRow(AvailableRow row) {
-		setRow(row);
+	public BookedRow(AvailableRow row, int seats) {
+		this.row = row;
+		this.seats = seats;
 	}
 	
 	public long getRowId() {
-		return rowId;
+		return id;
 	}
 
-	public void setRowId(long rowId) {
-		this.rowId = rowId;
+	public void setRowId(long id) {
+		this.id = id;
 	}
 
 	public AvailableRow getRow() {

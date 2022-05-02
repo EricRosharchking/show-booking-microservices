@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -127,18 +128,29 @@ public class ShowRestController {
 		return ResponseEntity.noContent().build();
 	}
 
-	@PostMapping(path = "/book")
-	public ResponseEntity<String[]> bookTicket(@PathVariable(value = "showId") long showId,
+	@PostMapping(path = "/book", consumes = "application/json")
+	public ResponseEntity<Long> bookTicket(@PathVariable(value = "showId") long showId,
 			@RequestBody BookingDto bookingDto) {
 		logger.printf(Level.INFO,
 				"Received incoming request to book tickets [%s] for show: [%d] with phoneNumber [%s]%n",
-				bookingDto.getSeats(), showId, bookingDto.getPhoneNum());
-		if (showService.findShow(showId).isPresent()) {
-			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present%n", showId);
-			return ResponseEntity.ok()
-					.body(showService.availablility(showId).stream().map(row -> row.toString()).toArray(String[]::new));
+				bookingDto.getCsSeats(), showId, bookingDto.getPhoneNum());
+		ResponseEntity<Long> response = ResponseEntity.noContent().build();
+		try {
+			if (showService.findShow(showId).isPresent()) {
+				logger.printf(Level.DEBUG, "Show of Id: [%d] is Present%n", showId);
+				response= ResponseEntity.ok().body(
+						showService.bookTicket(showId, bookingDto.getPhoneNum(), bookingDto.getCsSeats()).getId());
+			}
+		} catch (DataIntegrityViolationException e) {
+			response = ResponseEntity.badRequest()
+					.header("reasonOfFailure", "Only one booking per phone number is allowed per show").build();
+		}catch (IllegalStateException e) {
+			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			response = ResponseEntity.internalServerError().build();
 		}
-		return ResponseEntity.noContent().build();
+		return response;
 	}
 
 	@DeleteMapping(path = "/cancel")

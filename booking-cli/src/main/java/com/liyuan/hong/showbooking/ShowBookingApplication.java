@@ -107,7 +107,7 @@ public class ShowBookingApplication implements CommandLineRunner {
 			extractArgs(cmds, args, 1);
 		} else if ("book".equalsIgnoreCase(op)) {
 			args[0] = BOOK;
-			extractArgs(cmds, args, 2);
+			extractArgs(cmds, args, 3);
 		} else if ("cancel".equalsIgnoreCase(op)) {
 			args[0] = CANCEL;
 			extractArgs(cmds, args, 3);

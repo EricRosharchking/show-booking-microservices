@@ -4,13 +4,13 @@ public class BookingDto {
 
 	private long showId;
 	private String phoneNum;
-	private String seats;
+	private String csSeats;
 
 	public BookingDto(long showId, String phoneNum, String seats) {
 		super();
 		this.showId = showId;
 		this.phoneNum = phoneNum;
-		this.seats = seats;
+		this.csSeats = seats;
 	}
 
 	public long getShowId() {
@@ -29,12 +29,12 @@ public class BookingDto {
 		this.phoneNum = phoneNum;
 	}
 
-	public String getSeats() {
-		return seats;
+	public String getCsSeats() {
+		return csSeats;
 	}
 
-	public void setSeats(String seats) {
-		this.seats = seats;
+	public void setCsSeats(String seats) {
+		this.csSeats = seats;
 	}
 
 }
