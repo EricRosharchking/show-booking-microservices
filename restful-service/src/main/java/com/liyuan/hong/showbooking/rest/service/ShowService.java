@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.logging.log4j.Level;
@@ -115,33 +118,52 @@ public class ShowService {
 		return IterableUtils.toList(ticketRepo.findAllByShowId(showId));
 	}
 
-	public boolean removeSeatsFromShow(long showId, int seats) {
+	public boolean removeSeatsFromShow(long showId, int numOfSeats) {
 		Show show = findShow(showId)
-				.orElseThrow(() -> new RuntimeException("The Show with Id " + showId + " does not exist"));
-		if (show.getAvailableSeats() < seats) {
+				.orElseThrow(() -> new IllegalStateException("The Show with Id " + showId + " does not exist"));
+		if (show.getAvailableSeats() < numOfSeats) {
 			return false;
 		}
-		blockSeatsForShow(showId);
+		blockSeatsForShow(showId, numOfSeats);
 		return true;
 	}
 
-	private void blockSeatsForShow(long showId) {
-		// TODO Auto-generated method stub
-
+	private void blockSeatsForShow(long showId, int numOfSeats) {
+		int i = numOfSeats;
+		List<AvailableRow> availableRows = StreamSupport
+				.stream(availableRowRepo.findAllByShowIdAndSeatsLessThan(showId, 1 << 10 - 1).spliterator(), false)
+				.sorted((r1, r2) -> r2.getRow() - r1.getRow()).collect(Collectors.toList());
+		List<AvailableRow> newRows = new ArrayList<>();
+		for (AvailableRow row : availableRows) {
+			while (i > 0 && row.getSeats() < 1 << 10 - 1) {
+				int seat = 0;
+				for (int j = 0; j < 10 && i > 0; j++) {
+					if (((1 << j) & row.getSeats()) == 0) {
+						i--;
+						seat |= (1 << j);
+					}
+				}
+				logger.debug("For row [" + row.getRowId() + "], Blocked seats " + seat + ", original seats "
+						+ row.getSeats());
+				row.setSeats(seat ^ row.getSeats());
+				newRows.add(row);
+			}
+		}
+		availableRowRepo.saveAll(newRows);
 	}
 
 	public boolean addRowsToShow(long showId, int rows) {
-		List<BlockedRow> blockedRows = blockedRowRepo.findAllByShowIdAndSeatsIs(showId, 1 << 10 - 1);
-		if (blockedRows.size() >= rows) {
-			List<BlockedRow> addedRows = new ArrayList<>();
-			blockedRows.stream().forEach(r -> {
-				r.setSeats(0);
-				addedRows.add(r);
-			});
-			blockedRowRepo.saveAll(addedRows);
-			return true;
+		Iterable<AvailableRow> availableRows = availableRowRepo.findAllByShowIdAndSeatsIs(showId, 1 << 10 - 1);
+		if (IterableUtils.size(availableRows) < rows) {
+			throw new IllegalStateException("There is not enough rows to add for the show specified");
 		}
-		return false;
+		List<AvailableRow> addedRows = new ArrayList<>();
+		availableRows.forEach(r -> {
+			r.setSeats(0);
+			addedRows.add(r);
+		});
+		availableRowRepo.saveAll(addedRows);
+		return true;
 	}
 
 	public List<String> availablility(long showId) {

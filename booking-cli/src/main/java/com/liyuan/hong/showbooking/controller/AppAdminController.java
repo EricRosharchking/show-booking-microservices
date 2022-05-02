@@ -88,13 +88,17 @@ public class AppAdminController extends AppController {
 		try {
 			ResponseEntity<TicketDto[]> response = restTemplate.getForEntity(END_POINT + showId + "/view",
 					TicketDto[].class);
-			if (response == null || !response.hasBody() || response.getBody().length == 0) {
-				logger.info("The Show has not been booked");
-				return;
+			if (response.getStatusCode() == HttpStatus.OK) {
+				if (response.getBody().length == 0) {
+					logger.info("The Show has not been booked");
+				}
+				for (TicketDto ticket : response.getBody()) {
+					logger.printf(Level.INFO, "View Show %s%n", ticket.toString());
+				}
 			}
-			for (TicketDto ticket : response.getBody()) {
-				logger.printf(Level.INFO, "View Show %s%n", ticket.toString());
-			}
+		} catch (HttpStatusCodeException e) {
+			System.out.printf("Setting up Show failed, server returned error is [%s]%n",
+					e.getResponseHeaders().getFirst("reasonOfFailure"));
 		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
 			return;
@@ -117,6 +121,9 @@ public class AppAdminController extends AppController {
 		try {
 			result = restTemplate.postForObject(END_POINT + showId + "/removeSeats?seats={numOfSeats}", null,
 					String.class, numOfSeats);
+		} catch (HttpStatusCodeException e) {
+			System.out.printf("Removing seats from Show failed, server returned error is [%s]%n",
+					e.getResponseHeaders().getFirst("reasonOfFailure"));
 		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
 			return;
@@ -139,6 +146,9 @@ public class AppAdminController extends AppController {
 			boolean status = restTemplate.postForObject(END_POINT + showId + "/addRows?rows={numOfRows}", null,
 					Boolean.class, numOfRows);
 			result = status ? "succeeded" : result;
+		} catch (HttpStatusCodeException e) {
+			System.out.printf("Adding seats to Show failed, server returned error is [%s]%n",
+					e.getResponseHeaders().getFirst("reasonOfFailure"));
 		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
 			return;

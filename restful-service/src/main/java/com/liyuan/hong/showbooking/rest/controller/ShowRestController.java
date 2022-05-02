@@ -74,38 +74,54 @@ public class ShowRestController {
 					.map(t -> new TicketDto(t.getId(), showId, t.getBookedSeats())).toArray(TicketDto[]::new));
 		}
 		logger.info("Show of Id: " + showId + " is NOT Present");
-		return ResponseEntity.noContent().build();
+		return ResponseEntity.notFound().header("reasonOfFailure", "Show does not exist").build();
 	}
 
 	@PostMapping(path = "/removeSeats")
-	public String removeSeatsFromShow(@PathVariable(value = "showId") long showId,
+	public ResponseEntity<String> removeSeatsFromShow(@PathVariable(value = "showId") long showId,
 			@RequestParam(value = "seats") int seatsToRemove) {
 		logger.printf(Level.INFO, "Received incoming request to remove [%d] seats from show: [%d]%n", seatsToRemove,
 				showId);
+		ResponseEntity<String> response = null;
 		String result = "Failed";
 		try {
 			boolean status = showService.removeSeatsFromShow(showId, seatsToRemove);
 			result = status ? "Successfully removed " + seatsToRemove + " seats from Show of Id " + showId
 					: result + ", not enough seats to remove";
-		} catch (RuntimeException e) {
-			result = result + ", Show with Id " + showId + " does not exist";
+			response = status ? ResponseEntity.ok(result)
+					: ResponseEntity.badRequest().header("reasonOfFailure", result).build();
+		} catch (IllegalStateException e) {
+			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			response = ResponseEntity.internalServerError().build();
 		}
 		logger.printf(Level.INFO, "%s.%n", result);
-		return result;
+		return response;
 	}
 
 	@PostMapping(path = "/addRows")
-	public Boolean addRowsToShow(@PathVariable(value = "showId") long showId,
+	public ResponseEntity<Boolean> addRowsToShow(@PathVariable(value = "showId") long showId,
 			@RequestParam(value = "rows") int rowsToAdd) {
 		logger.printf(Level.INFO, "Received incoming request to add [%d] rows to show: [%d]%n", rowsToAdd, showId);
-		return showService.addRowsToShow(showId, rowsToAdd);
+		ResponseEntity<Boolean> response = null;
+		try {
+			response = ResponseEntity.ok().body(showService.addRowsToShow(showId, rowsToAdd));
+		} catch (IllegalStateException e) {
+			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
+		} catch (Exception e) {
+			logger.error(e.getStackTrace());
+			response = ResponseEntity.internalServerError().build();
+		}
+		logger.printf(Level.INFO, "Completed incoming request to add rows to show%n");
+		return response;
 	}
 
 	@GetMapping(path = "/availability")
 	public ResponseEntity<String[]> checkAvailability(@PathVariable(value = "showId") long showId) {
 		logger.printf(Level.INFO, "Received incoming request to check availability for show: [%d]%n", showId);
 		if (showService.findShow(showId).isPresent()) {
-			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present,%n", showId);
+			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present%n", showId);
 			return ResponseEntity.ok().body(showService.availablility(showId).toArray(String[]::new));
 		}
 		return ResponseEntity.noContent().build();
@@ -118,7 +134,7 @@ public class ShowRestController {
 				"Received incoming request to book tickets [%s] for show: [%d] with phoneNumber [%s]%n",
 				bookingDto.getSeats(), showId, bookingDto.getPhoneNum());
 		if (showService.findShow(showId).isPresent()) {
-			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present,%n", showId);
+			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present%n", showId);
 			return ResponseEntity.ok()
 					.body(showService.availablility(showId).stream().map(row -> row.toString()).toArray(String[]::new));
 		}
