@@ -19,6 +19,7 @@ import com.liyuan.hong.showbooking.domain.BookingDto;
 import com.liyuan.hong.showbooking.domain.TicketDto;
 import com.liyuan.hong.showbooking.rest.helper.DtoHelper;
 import com.liyuan.hong.showbooking.rest.service.ShowService;
+import com.liyuan.hong.showbooking.rest.service.TicketService;
 
 @RestController
 @RequestMapping(path = "/ticket/{showNum}")
@@ -29,6 +30,8 @@ public class TicketRestController {
 	@Autowired
 	ShowService showService;
 	@Autowired
+	TicketService ticketService;
+	@Autowired
 	DtoHelper dtoHelper;
 
 	public TicketRestController() {
@@ -36,11 +39,11 @@ public class TicketRestController {
 	}
 
 	@GetMapping(path = "/view", produces = "application/json")
-	public ResponseEntity<TicketDto[]> viewTickets(@PathVariable(value = "showNum") long showId) {
+	public ResponseEntity<TicketDto[]> viewTicketsOfShow(@PathVariable(value = "showNum") long showId) {
 		logger.printf(Level.INFO, "Received incoming request to view booked tickets for show: [%d]%n", showId);
 		ResponseEntity<TicketDto[]> response = ResponseEntity.noContent().build();
 		try {
-			TicketDto[] ticketDtos = showService.viewShow(showId).stream()
+			TicketDto[] ticketDtos = ticketService.viewShow(showId).stream()
 					.map(t -> dtoHelper.prepareTicketDtoFromTicket(t)).toArray(TicketDto[]::new);
 			if (ticketDtos.length > 0) {
 				response = ResponseEntity.ok().body(ticketDtos);
@@ -64,7 +67,7 @@ public class TicketRestController {
 		ResponseEntity<Long> response = ResponseEntity.noContent().build();
 		try {
 			response = ResponseEntity.ok()
-					.body(showService.bookTicket(showId, bookingDto.getPhoneNum(), bookingDto.getCsSeats()).getId());
+					.body(ticketService.bookTicket(showId, bookingDto.getPhoneNum(), bookingDto.getCsSeats()).getId());
 		} catch (NullPointerException e) {
 			response = ResponseEntity.badRequest()
 					.header("reasonOfFailure", "One (or more) seat is not available, please check and try again")
@@ -90,7 +93,8 @@ public class TicketRestController {
 				showId, phoneNum);
 		ResponseEntity<Boolean> response = ResponseEntity.noContent().build();
 		try {
-			showService.cancelTicket(showId, ticketId, phoneNum);
+			ticketService.cancelTicket(showId, ticketId, phoneNum);
+			response = ResponseEntity.ok(true);
 		} catch (DataIntegrityViolationException e) {
 			response = ResponseEntity.badRequest()
 					.header("reasonOfFailure", "Only one booking per phone number is allowed per show").build();

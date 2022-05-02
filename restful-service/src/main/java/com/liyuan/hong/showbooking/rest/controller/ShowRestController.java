@@ -38,7 +38,7 @@ public class ShowRestController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public ResponseEntity<Boolean> setupShow(@RequestBody ShowDto showDto) {
 		logger.printf(Level.INFO, "Received incoming request to setup show: %s%n", showDto.toString());
-		ResponseEntity<Boolean> response = ResponseEntity.created(null).build();
+		ResponseEntity<Boolean> response = ResponseEntity.created(null).body(true);
 		try {
 			showService.setupShow(showDto.getId(), showDto.getRows(), showDto.getSeats(), showDto.getCancelWindow());
 		} catch (IllegalStateException e) {
@@ -93,9 +93,16 @@ public class ShowRestController {
 	public ResponseEntity<String[]> checkShowAvailability(@PathVariable(value = "showNum") long showId) {
 		logger.printf(Level.INFO, "Received incoming request to check availability for show: [%d]%n", showId);
 		ResponseEntity<String[]> response = ResponseEntity.noContent().build();
-		if (showService.findShow(showId).isPresent()) {
-			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present%n", showId);
-			response = ResponseEntity.ok().body(showService.availablility(showId).toArray(String[]::new));
+		try {
+			String[] result = showService.availablility(showId).toArray(String[]::new);
+			if (result.length > 0) {
+				response = ResponseEntity.ok().body(result);
+			}
+		} catch (IllegalStateException e) {
+			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
+		} catch (Exception e) {
+			logger.error(e.getStackTrace());
+			response = ResponseEntity.internalServerError().build();
 		}
 		return response;
 	}
@@ -107,7 +114,6 @@ public class ShowRestController {
 	public void setShowService(ShowService showService) {
 		this.showService = showService;
 	}
-	
 
 	public DtoHelper getDtoHelper() {
 		return dtoHelper;

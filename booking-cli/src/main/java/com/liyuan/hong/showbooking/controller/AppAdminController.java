@@ -5,6 +5,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,24 +24,30 @@ import com.liyuan.hong.showbooking.exception.BuyerException;
 import net.minidev.json.JSONObject;
 
 @Controller
+@Configuration
+@PropertySource("classpath:application.properties")
 public class AppAdminController extends AppController {
 
-	private final String SHOW_END_POINT = "http://localhost:8080/show/";
-	private final String TICKET_END_POINT = "http://localhost:8080/ticket/";
+	private final String SHOW_END_POINT;
+	private final String TICKET_END_POINT;
 	private final String SEND_REQ = "Sending Request to [%s]%n";
 
-	Logger logger = LogManager.getLogger(AppAdminController.class);
+	Logger logger = LogManager.getLogger(this.getClass());
 
 	private RestTemplate restTemplate;
 	private HttpHeaders headers;
 
 	@Autowired
-	public AppAdminController(RestTemplateBuilder builder) {
+	public AppAdminController(RestTemplateBuilder builder, Environment env) {
 		this.restTemplate = builder.build();
 		logger.debug("RestTemplate Built");
 		headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		logger.debug("HttpHeaders set");
+		SHOW_END_POINT = "http://" + env.getProperty("rest.end.point.server", "127.0.0.0") + ":"
+				+ env.getProperty("rest.end.point.port", "8081") + "/show/";
+		TICKET_END_POINT = "http://" + env.getProperty("rest.end.point.server", "127.0.0.0") + ":"
+				+ env.getProperty("rest.end.point.port", "8081") + "/ticket/";
 	}
 
 	/**
@@ -52,20 +61,20 @@ public class AppAdminController extends AppController {
 	 */
 	@Override
 	public void setupShow(long showNum, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException {
-		logger.printf(Level.DEBUG, SEND_REQ,"Setup Show");
-		String output = "failed";
+		logger.printf(Level.DEBUG, SEND_REQ, "Setup Show");
 		try {
 			ResponseEntity<Boolean> response = restTemplate.postForEntity(SHOW_END_POINT + showNum + "/setup",
 					prepareShowDto(showNum, numOfRows, numOfSeatsPerRow, cancelWindow), Boolean.class);
-			output = response.getBody() ? "succeeded" : output;
+			logger.printf(Level.INFO, "Setup show %s%n", response.getBody() ? "succeeded" : "failed");
+			System.out.printf("Setup show %s%n", response.getBody() ? "succeeded" : "failed");
 		} catch (HttpStatusCodeException e) {
 			System.out.printf("Setting up Show failed, server returned error is [%s]%n",
 					e.getResponseHeaders().getFirst("reasonOfFailure"));
 		} catch (RestClientException e) {
-			logger.info("Rest Server is not Responding or is having error");
-			return;
+			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		logger.printf(Level.INFO, "Setup show %s%n", output);
 	}
 
 	private JSONObject prepareShowDto(long showNum, int numOfRows, int numOfSeatsPerRow, int cancelWindow) {
@@ -89,21 +98,21 @@ public class AppAdminController extends AppController {
 			ResponseEntity<TicketDto[]> response = restTemplate.getForEntity(TICKET_END_POINT + showNum + "/view",
 					TicketDto[].class);
 			if (response.getStatusCode() == HttpStatus.OK) {
-				if (response.getBody().length == 0) {
-					logger.info("The Show has not been booked");
-				}
 				for (TicketDto ticket : response.getBody()) {
-					logger.printf(Level.INFO, "View Show %s%n", ticket.toString());
+					System.out.printf("View Show %s%n", ticket.toString());
 				}
+			} else {
+				System.out.println("The Show has not been booked");
 			}
+			logger.info("View Show succeeded");
 		} catch (HttpStatusCodeException e) {
 			System.out.printf("Setting up Show failed, server returned error is [%s]%n",
 					e.getResponseHeaders().getFirst("reasonOfFailure"));
 		} catch (RestClientException e) {
-			logger.info("Rest Server is not Responding");
-			return;
+			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		logger.info("View Show succeeded");
 	}
 
 	/**
@@ -115,19 +124,20 @@ public class AppAdminController extends AppController {
 	 */
 	@Override
 	public void removeSeatsFromShow(long showNum, int numOfSeats) throws BuyerException {
-		logger.printf(Level.DEBUG, SEND_REQ,"Remove seats from Show");
+		logger.printf(Level.DEBUG, SEND_REQ, "Remove seats from Show");
 		String result = "failed";
 		try {
 			result = restTemplate.postForObject(SHOW_END_POINT + showNum + "/removeSeats?seats={numOfSeats}", null,
 					String.class, numOfSeats);
+			System.out.printf("Removing [%d] seats from show [%d] %s%n", numOfSeats, showNum, result);
 		} catch (HttpStatusCodeException e) {
 			System.out.printf("Removing seats from Show failed, server returned error is [%s]%n",
 					e.getResponseHeaders().getFirst("reasonOfFailure"));
 		} catch (RestClientException e) {
-			logger.info("Rest Server is not Responding");
-			return;
+			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		logger.printf(Level.INFO, "%s.%n", numOfSeats, showNum, result);
 	}
 
 	/**
@@ -139,20 +149,20 @@ public class AppAdminController extends AppController {
 	 */
 	@Override
 	public void addSeatsToShow(long showNum, int numOfRows) throws BuyerException {
-		logger.printf(Level.DEBUG, SEND_REQ,"Add rows to Show");
-		String result = "failed";
+		logger.printf(Level.DEBUG, SEND_REQ, "Add rows to Show");
 		try {
 			boolean status = restTemplate.postForObject(SHOW_END_POINT + showNum + "/addRows?rows={numOfRows}", null,
 					Boolean.class, numOfRows);
-			result = status ? "succeeded" : result;
+			logger.printf(Level.INFO, "Added %d rows to Show %d %s.%n", numOfRows, showNum,
+					status ? "succeeded" : "failed");
 		} catch (HttpStatusCodeException e) {
 			System.out.printf("Adding seats to Show failed, server returned error is [%s]%n",
 					e.getResponseHeaders().getFirst("reasonOfFailure"));
 		} catch (RestClientException e) {
-			logger.info("Rest Server is not Responding");
-			return;
+			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		logger.printf(Level.INFO, "Added %d rows to Show %d %s.%n", numOfRows, showNum, result);
 	}
 
 	@Override

@@ -5,10 +5,12 @@ import static com.liyuan.hong.showbooking.domain.Operation.*;
 import java.util.Scanner;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.env.Environment;
 
 import com.liyuan.hong.showbooking.controller.AppAdminController;
 import com.liyuan.hong.showbooking.controller.AppBuyerController;
@@ -26,6 +28,14 @@ public class ShowBookingApplication implements CommandLineRunner {
 
 	private RestTemplateBuilder builder;
 
+    @Autowired
+    Environment env;
+	
+	@Value("${rest.end.point.server}")
+	private String endPointServer;
+	@Value("${rest.end.point.port")
+	private String endPointPort;
+
 	@Autowired
 	public ShowBookingApplication(RestTemplateBuilder builder) {
 		this.builder = builder;
@@ -37,12 +47,12 @@ public class ShowBookingApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		appController = new AppBuyerController(builder);
+		appController = new AppBuyerController(builder, env);
 		if (args != null && args.length < 1) {
 			displayWrongArgsErrorMsgAndExit(args);
 		} else if (ADMIN.equalsIgnoreCase(args[0])) {
 			System.out.println("You are logged in as an ADMIN");
-			appController = new AppAdminController(builder);
+			appController = new AppAdminController(builder, env);
 		} else if (BUYER.equalsIgnoreCase(args[0])) {
 			System.out.println("You are logged in as a BUYER");
 		} else {
