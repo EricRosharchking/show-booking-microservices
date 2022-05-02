@@ -1,5 +1,6 @@
 package com.liyuan.hong.showbooking.controller;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,12 +8,13 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.liyuan.hong.showbooking.domain.BookingDto;
 import com.liyuan.hong.showbooking.exception.AdminException;
 import com.liyuan.hong.showbooking.exception.BuyerException;
 
@@ -21,6 +23,7 @@ import net.minidev.json.JSONObject;
 public class AppBuyerController extends AppController {
 
 	private final String END_POINT = "http://localhost:8080/show/";
+	private final String SEND_REQ = "Sending Request to [%s]%n";
 	Logger logger = LogManager.getLogger(AppAdminController.class);
 
 	private RestTemplate restTemplate;
@@ -35,21 +38,21 @@ public class AppBuyerController extends AppController {
 		logger.debug("HttpHeaders set");
 	}
 
-	/**
-	 * Availability <Show Number> (List all available seat numbers for a show. E.g
-	 * A1, F4 etc)
-	 * 
-	 * @param showId
-	 * @throws AdminException
-	 */
 	@Override
-	public void checkShowAvailability(long showId) throws AdminException {
-		logger.debug("Check Show Availability");
-		ResponseEntity<String[]> response = restTemplate.exchange(END_POINT + showId + "/availability", HttpMethod.GET,
-				null, String[].class);
+	public void checkShowAvailability(long showNum) throws AdminException {
+		logger.printf(Level.DEBUG, SEND_REQ,"Check Show Availability");
 		try {
-			for (String str : response.getBody()) {
-				System.out.println(str);
+			ResponseEntity<String[]> response = restTemplate.exchange(END_POINT + showNum + "/availability",
+					HttpMethod.GET, null, String[].class);
+			logger.debug(response.getHeaders().toString());
+			if (response.getStatusCode() == HttpStatus.OK) {
+				for (String str : response.getBody()) {
+					System.out.println(str);
+				}
+				logger.debug("Check Show Availability succeeded");
+				return;
+			} else {
+				logger.info("Check Show Availability failed");
 			}
 		} catch (RestClientException e) {
 			logger.info("Rest Server is not Responding");
@@ -60,26 +63,29 @@ public class AppBuyerController extends AppController {
 	 * Book <Show Number> <Phone#> <Comma separated list of seats> (This must
 	 * generate a unique ticket # and display)
 	 * 
-	 * @param showId
+	 * @param showNum
 	 * @param phoneNum
 	 * @param csSeats
 	 * @throws AdminException
 	 */
 	@Override
-	public void bookTicket(long showId, String phoneNum, String csSeats) throws AdminException {
-		logger.debug("Book Ticket");
-
-		HttpEntity<String> request = new HttpEntity<String>(prepareBookingDto(showId, phoneNum, csSeats), headers);
-		long ticketId = restTemplate.postForObject(END_POINT + showId + "/book", request, Long.class);
-		if (ticketId < 0) {
-			System.out.printf("Booking failed for Show [%d], tickets [%s]", showId, csSeats);
-			return;
+	public void bookTicket(long showNum, String phoneNum, String csSeats) throws AdminException {
+		logger.printf(Level.DEBUG, SEND_REQ,"Book Ticket");
+		HttpEntity<String> request = new HttpEntity<String>(prepareBookingDto(showNum, phoneNum, csSeats), headers);
+		try {
+			ResponseEntity<Long> response = restTemplate.postForEntity(END_POINT + showNum + "/book", request,
+					Long.class);
+			System.out.printf("Booking succeeded, your ticket Id is %d %n", response.getBody());
+		} catch (HttpStatusCodeException e) {
+			System.out.printf("Booking ticket to Show failed, server returned error is [%s]%n",
+					e.getResponseHeaders().getFirst("reasonOfFailure"));
+		} catch (RestClientException e) {
+			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
 		}
-		System.out.printf("Booking succeeded, your ticket Id is %d %n", ticketId);
 	}
 
-	private String prepareBookingDto(long showId, String phoneNum, String csSeats) {
-		JSONObject obj = new JSONObject().appendField("id", showId).appendField("phoneNum", phoneNum)
+	private String prepareBookingDto(long showNum, String phoneNum, String csSeats) {
+		JSONObject obj = new JSONObject().appendField("showNum", showNum).appendField("phoneNum", phoneNum)
 				.appendField("csSeats", csSeats);
 		logger.debug(obj.toJSONString());
 		return obj.toString();
@@ -88,18 +94,28 @@ public class AppBuyerController extends AppController {
 	/**
 	 * Cancel <Show Number> <Phone#> <Ticket#>
 	 * 
-	 * @param showId
+	 * @param showNum
 	 * @param phoneNum
 	 * @param ticketNum
 	 * @throws AdminException
 	 */
 	@Override
-	public void cancelTicket(long showId, String phoneNum, long ticketNum) throws AdminException {
-		logger.debug("Cancel Ticket");
+	public void cancelTicket(long showNum, String phoneNum, long ticketNum) throws AdminException {
+		logger.printf(Level.DEBUG, SEND_REQ, "Cancel Ticket");
 
-		restTemplate.exchange(END_POINT + "{showId}/cancel?ticketNum={ticketNum},phoneNum={phoneNum}",
-				HttpMethod.DELETE, null, String.class, showId, phoneNum, ticketNum);
+		try {
+			ResponseEntity<Boolean> response = restTemplate.exchange(END_POINT + "{showNum}/cancel?ticketNum={ticketNum}&phoneNum={phoneNum}",
+					HttpMethod.DELETE, null, Boolean.class, showNum, phoneNum, ticketNum);
+			System.out.printf("Cancel Ticket request %s%n", response.getBody() ? "succeeded" : "failed");
+		} catch (HttpStatusCodeException e) {
+			logger.error(e.getMessage());
+			System.out.printf("Booking ticket to Show failed, server returned error is [%s]%n",
+					e.getResponseHeaders().getFirst("reasonOfFailure"));
+		} catch (RestClientException e) {
+			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
+		}
 	}
+
 
 	@Override
 	public void process(Object[] args) throws Exception {

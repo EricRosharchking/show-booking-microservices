@@ -164,94 +164,17 @@ public class AppAdminController extends AppController {
 
 	@Override
 	public void checkShowAvailability(long showNum) throws AdminException {
-		logger.printf(Level.DEBUG, SEND_REQ,"Check Show Availability");
-		try {
-			ResponseEntity<String[]> response = restTemplate.exchange(END_POINT + showNum + "/availability",
-					HttpMethod.GET, null, String[].class);
-			logger.debug(response.getHeaders().toString());
-			if (response.getStatusCode() == HttpStatus.OK) {
-				for (String str : response.getBody()) {
-					System.out.println(str);
-				}
-				logger.debug("Check Show Availability succeeded");
-				return;
-			} else {
-				logger.info("Check Show Availability failed");
-			}
-		} catch (RestClientException e) {
-			logger.info("Rest Server is not Responding");
-		}
+		throw new AdminException();
 	}
 
-	/**
-	 * Book <Show Number> <Phone#> <Comma separated list of seats> (This must
-	 * generate a unique ticket # and display)
-	 * 
-	 * @param showNum
-	 * @param phoneNum
-	 * @param csSeats
-	 * @throws AdminException
-	 */
 	@Override
 	public void bookTicket(long showNum, String phoneNum, String csSeats) throws AdminException {
-		logger.printf(Level.DEBUG, SEND_REQ,"Book Ticket");
-		HttpEntity<String> request = new HttpEntity<String>(prepareBookingDto(showNum, phoneNum, csSeats), headers);
-		try {
-			ResponseEntity<Long> response = restTemplate.postForEntity(END_POINT + showNum + "/book", request,
-					Long.class);
-			System.out.printf("Booking succeeded, your ticket Id is %d %n", response.getBody());
-		} catch (HttpStatusCodeException e) {
-			System.out.printf("Booking ticket to Show failed, server returned error is [%s]%n",
-					e.getResponseHeaders().getFirst("reasonOfFailure"));
-		} catch (RestClientException e) {
-			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
-		}
+		throw new AdminException();
 	}
 
-	private String prepareBookingDto(long showNum, String phoneNum, String csSeats) {
-		JSONObject obj = new JSONObject().appendField("showNum", showNum).appendField("phoneNum", phoneNum)
-				.appendField("csSeats", csSeats);
-		logger.debug(obj.toJSONString());
-		return obj.toString();
-	}
-
-	/**
-	 * Cancel <Show Number> <Phone#> <Ticket#>
-	 * 
-	 * @param showNum
-	 * @param phoneNum
-	 * @param ticketNum
-	 * @throws AdminException
-	 */
 	@Override
-	public void cancelTicket(long showNum, String phoneNum, long ticketNum) throws AdminException {
-		logger.printf(Level.DEBUG, SEND_REQ, "Cancel Ticket");
-
-		try {
-			ResponseEntity<Boolean> response = restTemplate.exchange(END_POINT + "{showNum}/cancel?ticketNum={ticketNum}&phoneNum={phoneNum}",
-					HttpMethod.DELETE, null, Boolean.class, showNum, phoneNum, ticketNum);
-		} catch (HttpStatusCodeException e) {
-			logger.error(e.getMessage());
-			System.out.printf("Booking ticket to Show failed, server returned error is [%s]%n",
-					e.getResponseHeaders().getFirst("reasonOfFailure"));
-		} catch (RestClientException e) {
-			logger.info("Rest Server is not Responding or having error, " + e.getMessage());
-		}
+	public void cancelTicket(long showNum, String phoneNum, long ticketId) throws AdminException {
+		throw new AdminException();
 	}
-
-//	@Override
-//	public void checkShowAvailability(long showNum) throws AdminException {
-//		throw new AdminException();
-//	}
-//
-//	@Override
-//	public void bookTicket(long showNum, String phoneNum, String csSeats) throws AdminException {
-//		throw new AdminException();
-//	}
-//
-//	@Override
-//	public void cancelTicket(long showNum, String phoneNum, long ticketId) throws AdminException {
-//		throw new AdminException();
-//	}
 
 }
