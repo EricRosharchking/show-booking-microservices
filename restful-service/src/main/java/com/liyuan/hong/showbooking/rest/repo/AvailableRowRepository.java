@@ -12,8 +12,12 @@ public interface AvailableRowRepository extends CrudRepository<AvailableRow, Lon
 
 	Iterable<AvailableRow> findAllByShowId(Long id);
 
-	Iterable<AvailableRow> findAllByShowIdAndSeatsLessThan(long showId, int i);
+	Iterable<AvailableRow> findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(long showId, int seats);
 
-	Iterable<AvailableRow> findAllByShowIdAndSeatsIs(long showId, int i);
+	Iterable<AvailableRow> findAllByShowIdAndSeatsEquals(long showId, int seats);
+
+	Iterable<AvailableRow> findAllByShowIdOrderByRowCharAsc(long showId);
+
+	Iterable<AvailableRow> findAllByShowIdAndSeatsEqualsOrderByRowCharAsc(long showId, int i);
 
 }

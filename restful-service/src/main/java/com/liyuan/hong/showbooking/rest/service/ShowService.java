@@ -1,6 +1,7 @@
 package com.liyuan.hong.showbooking.rest.service;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,23 +72,6 @@ public class ShowService {
 		return show;
 	}
 
-	private List<BlockedRow> initBlockedRowsForShow(Show show, int rows, int seats) {
-		List<BlockedRow> blockedRows = new ArrayList<>();
-		for (int i = rows - 1; i < MAX_ROWS; i++) {
-			BlockedRow blocked = new BlockedRow(show, (char) ('a' + i));
-			blocked.setSeats((1 << MAX_SEATS) - 1);
-			blockedRows.add(blocked);
-		}
-		if (seats <= MAX_SEATS) {
-			for (int i = 0; i < rows; i++) {
-				BlockedRow blocked = new BlockedRow(show, (char) ('a' + i));
-				blocked.setSeats((1 << MAX_SEATS) - (1 << seats));
-				blockedRows.add(blocked);
-			}
-		}
-		return blockedRows;
-	}
-
 	private List<AvailableRow> initAvailableRowsForShow(Show show, int rows, int seats) {
 		List<AvailableRow> availableRows = new ArrayList<>();
 		for (int i = rows; i < MAX_ROWS; i++) {
@@ -125,17 +109,20 @@ public class ShowService {
 			return false;
 		}
 		blockSeatsForShow(showId, numOfSeats);
+		show.setAvailableSeats(numOfSeats);
+		show.setBlockedSeats(numOfSeats);
+		showRepo.save(show);
 		return true;
 	}
 
 	private void blockSeatsForShow(long showId, int numOfSeats) {
 		int i = numOfSeats;
-		List<AvailableRow> availableRows = StreamSupport
-				.stream(availableRowRepo.findAllByShowIdAndSeatsLessThan(showId, 1 << 10 - 1).spliterator(), false)
-				.sorted((r1, r2) -> r2.getRow() - r1.getRow()).collect(Collectors.toList());
+		List<AvailableRow> availableRows = StreamSupport.stream(
+				availableRowRepo.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId, (1 << 10) - 1).spliterator(),
+				false).collect(Collectors.toList());
 		List<AvailableRow> newRows = new ArrayList<>();
 		for (AvailableRow row : availableRows) {
-			while (i > 0 && row.getSeats() < 1 << 10 - 1) {
+			while (i > 0 && row.getSeats() < (1 << 10) - 1) {
 				int seat = 0;
 				for (int j = 0; j < 10 && i > 0; j++) {
 					if (((1 << j) & row.getSeats()) == 0) {
@@ -153,25 +140,33 @@ public class ShowService {
 	}
 
 	public boolean addRowsToShow(long showId, int rows) {
-		Iterable<AvailableRow> availableRows = availableRowRepo.findAllByShowIdAndSeatsIs(showId, 1 << 10 - 1);
-		if (IterableUtils.size(availableRows) < rows) {
+		int seats = showRepo.findById(showId)
+				.orElseThrow(() -> new IllegalStateException("The Show with Id " + showId + " does not exist"))
+				.getSeats();
+		List<AvailableRow> availableRows = StreamSupport.stream(
+				availableRowRepo.findAllByShowIdAndSeatsEqualsOrderByRowCharAsc(showId, (1 << 10) - 1).spliterator(),
+				false).collect(Collectors.toList());
+		if (availableRows.size() < rows) {
 			throw new IllegalStateException("There is not enough rows to add for the show specified");
 		}
 		List<AvailableRow> addedRows = new ArrayList<>();
-		availableRows.forEach(r -> {
-			r.setSeats(0);
-			addedRows.add(r);
-		});
+		Iterator<AvailableRow> iter = availableRows.iterator();
+		for (int i = 0; i < rows; i++) {
+			AvailableRow row = iter.next();
+			row.setSeats((1 << MAX_SEATS) - (1 << seats));
+			addedRows.add(row);
+		}
 		availableRowRepo.saveAll(addedRows);
 		return true;
 	}
 
 	public List<String> availablility(long showId) {
-		Iterable<AvailableRow> rows = availableRowRepo.findAllByShowIdAndSeatsLessThan(showId, (1 << 10) - 1);
+		Iterable<AvailableRow> rows = availableRowRepo.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId,
+				(1 << 10) - 1);
 		logger.printf(Level.DEBUG, "Found %d available rows for show %d%n.", IterableUtils.size(rows), showId);
 		List<String> resultList = new ArrayList<>();
 		for (AvailableRow row : rows) {
-			String str = rowSeatsToString(row.getRow(), row.getSeats());
+			String str = rowSeatsToString(row.getRowChar(), row.getSeats());
 			logger.printf(Level.DEBUG, "[%s] added to result", str);
 			resultList.add(str);
 		}

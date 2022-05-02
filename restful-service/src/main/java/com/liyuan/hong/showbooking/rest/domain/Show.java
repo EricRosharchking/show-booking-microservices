@@ -49,20 +49,36 @@ public class Show {
 		this.id = id;
 	}
 
-	public int getAvailableSeats() {
+	public int getRows() {
 		return rows;
 	}
 
-	public void setAvailableSeats(int rows) {
+	public void setRows(int rows) {
 		this.rows = rows;
 	}
 
-	public int getBlockedSeats() {
+	public int getSeats() {
 		return seats;
 	}
 
-	public void setBlockedSeats(int seats) {
+	public void setSeats(int seats) {
 		this.seats = seats;
+	}
+
+	public int getAvailableSeats() {
+		return availableSeats;
+	}
+
+	public void setAvailableSeats(int seats) {
+		this.availableSeats = seats;
+	}
+
+	public int getBlockedSeats() {
+		return blockedSeats;
+	}
+
+	public void setBlockedSeats(int seats) {
+		this.blockedSeats = seats;
 	}
 
 	public int getCancelWindow() {

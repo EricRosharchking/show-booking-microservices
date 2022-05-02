@@ -28,9 +28,9 @@ public class AvailableRow {
 		super();
 	}
 
-	public AvailableRow(Show show, char row) {
+	public AvailableRow(Show show, char rowChar) {
 		setShow(show);
-		setRow(row);
+		setRowChar(rowChar);
 	}
 	
 	public long getRowId() {
@@ -49,12 +49,12 @@ public class AvailableRow {
 		this.show = show;
 	}
 
-	public char getRow() {
+	public char getRowChar() {
 		return rowChar;
 	}
 
-	public void setRow(char row) {
-		this.rowChar = row;
+	public void setRowChar(char rowChar) {
+		this.rowChar = rowChar;
 	}
 
 	public int getSeats() {
