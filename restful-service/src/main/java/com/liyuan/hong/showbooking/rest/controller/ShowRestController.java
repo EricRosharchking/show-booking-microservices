@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.liyuan.hong.showbooking.domain.BookingDto;
 import com.liyuan.hong.showbooking.domain.ShowDto;
 import com.liyuan.hong.showbooking.domain.TicketDto;
+import com.liyuan.hong.showbooking.helper.DtoHelper;
 import com.liyuan.hong.showbooking.rest.domain.AvailableRow;
 import com.liyuan.hong.showbooking.rest.domain.Show;
 import com.liyuan.hong.showbooking.rest.domain.Ticket;
@@ -39,6 +40,8 @@ public class ShowRestController {
 
 	@Autowired
 	ShowService showService;
+	@Autowired
+	DtoHelper dtoHelper;
 
 	public ShowRestController() {
 
@@ -48,8 +51,9 @@ public class ShowRestController {
 		return showService;
 	}
 
-	public void setShowService(ShowService showService) {
+	public void setShowService(ShowService showService, DtoHelper dtoHelper) {
 		this.showService = showService;
+		this.dtoHelper = dtoHelper;
 	}
 
 	@PostMapping(path = "/setup", consumes = "application/json", produces = "application/json")
@@ -72,7 +76,7 @@ public class ShowRestController {
 		if (showService.findShow(showId).isPresent()) {
 			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present,%n", showId);
 			return ResponseEntity.ok().body(showService.viewShow(showId).stream()
-					.map(t -> new TicketDto(t.getId(), showId, t.getBookedSeats())).toArray(TicketDto[]::new));
+					.map(t -> dtoHelper.prepareTicketDtoFromTicket(t)).toArray(TicketDto[]::new));
 		}
 		logger.info("Show of Id: " + showId + " is NOT Present");
 		return ResponseEntity.notFound().header("reasonOfFailure", "Show does not exist").build();
