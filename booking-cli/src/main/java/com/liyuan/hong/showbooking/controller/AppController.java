@@ -44,17 +44,17 @@ public abstract class AppController {
 		}
 	}
 
-	public abstract void setupShow(long showId, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException;
+	public abstract void setupShow(long showNum, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException;
 
-	public abstract void viewShow(long showId) throws BuyerException;
+	public abstract void viewShow(long showNum) throws BuyerException;
 
-	public abstract void removeSeatsFromShow(long showId, int numOfSeats) throws BuyerException;
+	public abstract void removeSeatsFromShow(long showNum, int numOfSeats) throws BuyerException;
 
-	public abstract void addSeatsToShow(long showId, int numOfRows) throws BuyerException;
+	public abstract void addSeatsToShow(long showNum, int numOfRows) throws BuyerException;
 
-	public abstract void checkShowAvailability(long showId) throws AdminException;
+	public abstract void checkShowAvailability(long showNum) throws AdminException;
 
-	public abstract void bookTicket(long showId, String phoneNum, String csSeats) throws AdminException;
+	public abstract void bookTicket(long showNum, String phoneNum, String csSeats) throws AdminException;
 
-	public abstract void cancelTicket(long showId, String phoneNum, long ticketId) throws AdminException;
+	public abstract void cancelTicket(long showNum, String phoneNum, long ticketId) throws AdminException;
 }

@@ -36,6 +36,9 @@ public class Ticket {
 	@Column(columnDefinition = "TIMESTAMP")
 	private LocalDateTime bookedTime;
 
+	@Column
+	private int numOfSeats;
+
 	@OneToMany
 	private Set<BookedRow> bookedRow;
 
@@ -43,11 +46,12 @@ public class Ticket {
 		super();
 	}
 
-	public Ticket(Show show, String phoneNum, Set<BookedRow> bookedRow) {
+	public Ticket(Show show, String phoneNum, LocalDateTime bookedTime, int numOfSeats, Set<BookedRow> bookedRow) {
 		super();
 		this.show = show;
 		this.phoneNum = phoneNum;
-		this.bookedTime = LocalDateTime.now();
+		this.bookedTime = bookedTime;
+		this.numOfSeats = numOfSeats;
 		this.bookedRow = bookedRow;
 	}
 
@@ -81,6 +85,14 @@ public class Ticket {
 
 	public void setBookedTime(LocalDateTime bookedTime) {
 		this.bookedTime = bookedTime;
+	}
+	
+	public int getNumOfSeats() {
+		return numOfSeats;
+	}
+
+	public void setNumOfSeats(int numOfSeats) {
+		this.numOfSeats = numOfSeats;
 	}
 
 	public Set<BookedRow> getBookedRow() {

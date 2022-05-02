@@ -1,5 +1,7 @@
 package com.liyuan.hong.showbooking.rest.service;
 
+import java.time.LocalDateTime;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,7 +49,8 @@ public class ShowService {
 	private TicketRepository ticketRepo;
 
 	@Autowired
-	public ShowService(AvailableRowRepository availableRowsRepo,BookedRowRepository bookedRowRepo, ShowRepository showRepo, TicketRepository ticketRepo) {
+	public ShowService(AvailableRowRepository availableRowsRepo, BookedRowRepository bookedRowRepo,
+			ShowRepository showRepo, TicketRepository ticketRepo) {
 		super();
 		this.availableRowRepo = availableRowsRepo;
 		this.bookedRowRepo = bookedRowRepo;
@@ -186,31 +189,39 @@ public class ShowService {
 		return sb.replace(sb.length() - 1, sb.length(), ".").toString();
 	}
 
-	public Ticket bookTicket(long showId, String phoneNum, String csSeats) throws IllegalStateException, DataIntegrityViolationException {
-		Show show = showRepo.findById(showId).orElseThrow(() -> new IllegalStateException("The Show with Id " + showId + " does not exist"));
+	public Ticket bookTicket(long showId, String phoneNum, String csSeats)
+			throws IllegalStateException, DataIntegrityViolationException {
+		Show show = showRepo.findById(showId)
+				.orElseThrow(() -> new IllegalStateException("The Show with Id " + showId + " does not exist"));
 		Map<Character, Integer> bookingSeatsInRows = getBookingSeatsInRows(csSeats);
 		int numOfSeats = bookingSeatsInRows.get('.');
 		bookingSeatsInRows.remove('.');
 		if (show.getAvailableSeats() < numOfSeats) {
-			throw new IllegalStateException("There are not enough available seats to book, please check availability and try again");
+			throw new IllegalStateException(
+					"There are not enough available seats to book, please check availability and try again");
 		}
 		Set<BookedRow> bookedRows = new HashSet<>();
 //		prepareBookedRowsForShow(showId, bookingSeatsInRows);
 		Iterable<AvailableRow> availableRows = availableRowRepo
 				.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId, (1 << 10) - 1);
+		logger.printf(Level.DEBUG, "Found %d available rows for show %d%n", IterableUtils.size(availableRows), showId);
+		for (AvailableRow r: availableRows) {
+			logger.printf(Level.DEBUG, "Found availableRow %c-%s%n", r.getRowChar(), Integer.toBinaryString(r.getSeats()));
+		}
 		List<AvailableRow> rowsToBook = new ArrayList<>();
-		for (AvailableRow row: availableRows) {
+		for (AvailableRow row : availableRows) {
 			int availableSeats = row.getSeats();
 			int bookingSeats = bookingSeatsInRows.get(row.getRowChar());
 			if ((availableSeats & bookingSeats) != 0) {
-				throw new IllegalStateException("One of the seats has been booked or blocked, please check availability and try again");
+				throw new IllegalStateException(
+						"One of the seats has been booked or blocked, please check availability and try again");
 			}
 			bookedRows.add(new BookedRow(row, bookingSeats));
 			row.setSeats(availableSeats ^ bookingSeats);
 			rowsToBook.add(row);
 		}
 		show.setAvailableSeats(show.getAvailableSeats() - numOfSeats);
-		Ticket t = new Ticket(show, phoneNum, bookedRows);
+		Ticket t = new Ticket(show, phoneNum, LocalDateTime.now(), numOfSeats, bookedRows);
 		showRepo.save(show);
 		bookedRowRepo.saveAll(bookedRows);
 		return ticketRepo.save(t);
@@ -236,11 +247,31 @@ public class ShowService {
 			bookingSeatsInRows.put(rowChar, bookingSeat);
 		}
 		bookingSeatsInRows.put('.', totalSeatsToBook);
+		logger.debug(bookingSeatsInRows.entrySet());
 		return bookingSeatsInRows;
 	}
 
-	private Set<BookedRow> prepareBookedRowsForShow(long showId, Map<Character, Integer> bookingSeatsInRows) {
-		// TODO Auto-generated method stub
-		return null;
+	public boolean cancelTicket(long showId, long ticketId, String phoneNum) throws IllegalStateException {
+		LocalDateTime time = LocalDateTime.now();
+		Show show = showRepo.findById(showId)
+				.orElseThrow(() -> new IllegalStateException("The Show with Id " + showId + " does not exist"));
+		Ticket ticket = ticketRepo.findByIdAndPhoneNum(ticketId, phoneNum)
+				.orElseThrow(() -> new IllegalStateException("The Ticket with Id " + ticketId + " does not exist"));
+		if (time.isAfter(ticket.getBookedTime().plusMinutes(show.getCancelWindow()))) {
+			throw new IllegalStateException("Cancel Window of " + show.getCancelWindow()
+					+ " minutes has passed, you cannot cancel this ticket anymore");
+		}
+		List<AvailableRow> rowsToUpdate = new ArrayList<>();
+		for (BookedRow bRow : ticket.getBookedRow()) {
+			AvailableRow aRow = bRow.getRow();
+			aRow.setSeats(aRow.getSeats() ^ bRow.getSeats());
+			rowsToUpdate.add(aRow);
+		}
+		show.setAvailableSeats(show.getAvailableSeats() + ticket.getNumOfSeats());
+		showRepo.save(show);
+		availableRowRepo.saveAll(rowsToUpdate);
+		ticketRepo.delete(ticket);
+		bookedRowRepo.deleteAll(ticket.getBookedRow());
+		return true;
 	}
 }

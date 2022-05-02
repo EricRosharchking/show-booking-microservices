@@ -1,4 +1,4 @@
-package com.liyuan.hong.showbooking.helper;
+package com.liyuan.hong.showbooking.rest.helper;
 
 import java.util.HashSet;
 import java.util.Set;

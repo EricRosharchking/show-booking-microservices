@@ -27,14 +27,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.liyuan.hong.showbooking.domain.BookingDto;
 import com.liyuan.hong.showbooking.domain.ShowDto;
 import com.liyuan.hong.showbooking.domain.TicketDto;
-import com.liyuan.hong.showbooking.helper.DtoHelper;
 import com.liyuan.hong.showbooking.rest.domain.AvailableRow;
 import com.liyuan.hong.showbooking.rest.domain.Show;
 import com.liyuan.hong.showbooking.rest.domain.Ticket;
+import com.liyuan.hong.showbooking.rest.helper.DtoHelper;
 import com.liyuan.hong.showbooking.rest.service.ShowService;
 
 @RestController
-@RequestMapping(path = "/show/{showId}")
+@RequestMapping(path = "/show/{showNum}")
 public class ShowRestController {
 	Logger logger = LogManager.getLogger(this.getClass());
 
@@ -71,7 +71,7 @@ public class ShowRestController {
 	}
 
 	@GetMapping(path = "/view", produces = "application/json")
-	public ResponseEntity<TicketDto[]> viewShow(@PathVariable(value = "showId") long showId) {
+	public ResponseEntity<TicketDto[]> viewShow(@PathVariable(value = "showNum") long showId) {
 		logger.printf(Level.INFO, "Received incoming request to view show: [%d]%n", showId);
 		if (showService.findShow(showId).isPresent()) {
 			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present,%n", showId);
@@ -83,7 +83,7 @@ public class ShowRestController {
 	}
 
 	@PostMapping(path = "/removeSeats")
-	public ResponseEntity<String> removeSeatsFromShow(@PathVariable(value = "showId") long showId,
+	public ResponseEntity<String> removeSeatsFromShow(@PathVariable(value = "showNum") long showId,
 			@RequestParam(value = "seats") int seatsToRemove) {
 		logger.printf(Level.INFO, "Received incoming request to remove [%d] seats from show: [%d]%n", seatsToRemove,
 				showId);
@@ -106,7 +106,7 @@ public class ShowRestController {
 	}
 
 	@PostMapping(path = "/addRows")
-	public ResponseEntity<Boolean> addRowsToShow(@PathVariable(value = "showId") long showId,
+	public ResponseEntity<Boolean> addRowsToShow(@PathVariable(value = "showNum") long showId,
 			@RequestParam(value = "rows") int rowsToAdd) {
 		logger.printf(Level.INFO, "Received incoming request to add [%d] rows to show: [%d]%n", rowsToAdd, showId);
 		ResponseEntity<Boolean> response = null;
@@ -123,7 +123,7 @@ public class ShowRestController {
 	}
 
 	@GetMapping(path = "/availability")
-	public ResponseEntity<String[]> checkAvailability(@PathVariable(value = "showId") long showId) {
+	public ResponseEntity<String[]> checkAvailability(@PathVariable(value = "showNum") long showId) {
 		logger.printf(Level.INFO, "Received incoming request to check availability for show: [%d]%n", showId);
 		if (showService.findShow(showId).isPresent()) {
 			logger.printf(Level.DEBUG, "Show of Id: [%d] is Present%n", showId);
@@ -133,37 +133,44 @@ public class ShowRestController {
 	}
 
 	@PostMapping(path = "/book", consumes = "application/json")
-	public ResponseEntity<Long> bookTicket(@PathVariable(value = "showId") long showId,
+	public ResponseEntity<Long> bookTicket(@PathVariable(value = "showNum") long showId,
 			@RequestBody BookingDto bookingDto) {
 		logger.printf(Level.INFO,
-				"Received incoming request to book tickets [%s] for show: [%d] with phoneNumber [%s]%n",
+				"Received incoming request to book ticket [%s] for show: [%d] with phoneNumber [%s]%n",
 				bookingDto.getCsSeats(), showId, bookingDto.getPhoneNum());
 		ResponseEntity<Long> response = ResponseEntity.noContent().build();
 		try {
-			if (showService.findShow(showId).isPresent()) {
-				logger.printf(Level.DEBUG, "Show of Id: [%d] is Present%n", showId);
-				response= ResponseEntity.ok().body(
-						showService.bookTicket(showId, bookingDto.getPhoneNum(), bookingDto.getCsSeats()).getId());
-			}
+			response = ResponseEntity.ok()
+					.body(showService.bookTicket(showId, bookingDto.getPhoneNum(), bookingDto.getCsSeats()).getId());
 		} catch (DataIntegrityViolationException e) {
 			response = ResponseEntity.badRequest()
 					.header("reasonOfFailure", "Only one booking per phone number is allowed per show").build();
-		}catch (IllegalStateException e) {
+		} catch (IllegalStateException e) {
 			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
 		} catch (Exception e) {
 			e.printStackTrace();
 			response = ResponseEntity.internalServerError().build();
 		}
+		logger.printf(Level.INFO, "Completed incoming request to book ticket%n");
 		return response;
 	}
 
 	@DeleteMapping(path = "/cancel")
-	public ResponseEntity<String[]> cancelTicket(@PathVariable(value = "showId") long showId,
-			@RequestParam(value = "ticketId") long tickedId, @RequestParam(value = "phoneNum") String phoneNum) {
-		if (showService.findShow(showId).isPresent()) {
-			return ResponseEntity.ok()
-					.body(showService.availablility(showId).stream().map(row -> row.toString()).toArray(String[]::new));
+	public ResponseEntity<Boolean> cancelTicket(@PathVariable(value = "showNum") long showId,
+			@RequestParam(value = "ticketNum") long ticketId, @RequestParam(value = "phoneNum") String phoneNum) {
+		logger.printf(Level.INFO,
+				"Received incoming request to cancel ticket [%d] for show: [%d] with phoneNumber [%s]%n", ticketId,
+				showId, phoneNum);
+		ResponseEntity<Boolean> response = ResponseEntity.noContent().build();
+		try {
+			showService.cancelTicket(showId, ticketId, phoneNum);
+		} catch (IllegalStateException e) {
+			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			response = ResponseEntity.internalServerError().build();
 		}
-		return ResponseEntity.noContent().build();
+		logger.printf(Level.INFO, "Completed incoming request to cancel ticket%n");
+		return response;
 	}
 }
