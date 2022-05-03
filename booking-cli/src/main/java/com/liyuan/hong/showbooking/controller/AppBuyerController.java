@@ -69,15 +69,6 @@ public class AppBuyerController extends AppController {
 		}
 	}
 
-	/**
-	 * Book <Show Number> <Phone#> <Comma separated list of seats> (This must
-	 * generate a unique ticket # and display)
-	 * 
-	 * @param showNum
-	 * @param phoneNum
-	 * @param csSeats
-	 * @throws AdminException
-	 */
 	@Override
 	public void bookTicket(long showNum, String phoneNum, String csSeats) throws AdminException {
 		logger.printf(Level.DEBUG, SEND_REQ, "Book Ticket");
@@ -103,18 +94,9 @@ public class AppBuyerController extends AppController {
 		return obj.toString();
 	}
 
-	/**
-	 * Cancel <Show Number> <Phone#> <Ticket#>
-	 * 
-	 * @param showNum
-	 * @param phoneNum
-	 * @param ticketNum
-	 * @throws AdminException
-	 */
 	@Override
 	public void cancelTicket(long showNum, String phoneNum, long ticketNum) throws AdminException {
 		logger.printf(Level.DEBUG, SEND_REQ, "Cancel Ticket");
-
 		try {
 			ResponseEntity<Boolean> response = restTemplate.exchange(
 					TICKET_END_POINT + "{showNum}/cancel?ticketNum={ticketNum}&phoneNum={phoneNum}", HttpMethod.DELETE,

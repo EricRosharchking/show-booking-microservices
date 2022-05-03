@@ -31,7 +31,7 @@ public class ShowService {
 	private final int MAX_ROWS = 26;
 	private final int MAX_SEATS = 10;
 	private final int BLOCKED_ROW = (2 << 10) - 1;
-	private final int AVAILABLE_ROW = (2 << 10) - 2;
+	private final int FULLY_BOOKED_ROW = (2 << 10) - 2;
 
 	private AvailableRowRepository availableRowRepo;
 	private ShowRepository showRepo;
@@ -44,68 +44,91 @@ public class ShowService {
 		this.showRepo = showRepo;
 	}
 
-	public Show setupShow(long showId, int rows, int seats, int cancelWindow) {
-		if (showRepo.existsById(showId)) {
-			throw new IllegalStateException("Show of Id " + showId + " already exists");
-		} else if (rows > MAX_ROWS || rows < 1) {
-			throw new IllegalStateException("Rows of " + rows + " exceeds limits of 0 ~" + MAX_ROWS);
-		} else if (seats > MAX_SEATS || seats < 1) {
-			throw new IllegalStateException("Seats of " + seats + " exceeds limits of 0 ~ " + MAX_SEATS + " per row");
-		} else if (cancelWindow < 0) {
-			throw new IllegalStateException("CancelWindow cannot be negative.");
-		}
+	public Show setupShow(long showId, int rows, int seats, int cancelWindow) throws IllegalStateException {
+		throwErrorIfSetupRequestIsNotValid(showId, rows, seats, cancelWindow);
 		Show show = showRepo.save(new Show(showId, rows, seats, rows * seats, cancelWindow));
 		logger.printf(Level.DEBUG, "Show of Id [%d] saved.%n", showId);
-		List<AvailableRow> availableRows = initAvailableRowsForShow(show, rows, seats);
-		availableRowRepo.saveAll(availableRows);
+		availableRowRepo.saveAll(initAllRowsForShow(show, rows, seats));
 		logger.printf(Level.DEBUG, "AvailableRows of Show [%d] initialized and saved.%n", showId);
 		return show;
 	}
+	
+	private void throwErrorIfSetupRequestIsNotValid(long showId, int rows, int seats, int cancelWindow) {
+		if (findShow(showId).isPresent()) {
+			throw new IllegalStateException("Show of Id " + showId + " already exists");
+		} else if (rows > MAX_ROWS || rows < 1) {
+			throw new IllegalStateException("Rows of " + rows + " exceeds limits of 1 ~" + MAX_ROWS);
+		} else if (seats > MAX_SEATS || seats < 1) {
+			throw new IllegalStateException("Seats of " + seats + " exceeds limits of 1 ~ " + MAX_SEATS + " per row");
+		} else if (cancelWindow < 0) {
+			throw new IllegalStateException("CancelWindow cannot be negative.");
+		}
+	}
 
-	private List<AvailableRow> initAvailableRowsForShow(Show show, int rows, int seats) {
+	private List<AvailableRow> initAllRowsForShow(Show show, int rows, int seats) {
 		List<AvailableRow> availableRows = new ArrayList<>();
-		for (int i = rows; i < MAX_ROWS; i++) {
-			AvailableRow available = new AvailableRow(show, (char) ('a' + i));
-			available.setSeats((2 << MAX_SEATS) - 1);
-			availableRows.add(available);
-		}
-		if (seats <= MAX_SEATS) {
-			for (int i = 0; i < rows; i++) {
-				AvailableRow available = new AvailableRow(show, (char) ('a' + i));
-				available.setSeats((2 << MAX_SEATS) - (2 << seats));
-				availableRows.add(available);
-			}
-		}
+		availableRows.addAll(initBlockedRows(show, rows, seats));
+		availableRows.addAll(initAvailableRows(show, rows, seats));
 		for (AvailableRow row : availableRows) {
 			logger.debug(row.toString());
 		}
 		return availableRows;
 	}
 
-	public Optional<Show> findShow(long showId) {
+	private List<AvailableRow> initBlockedRows(Show show, int rows, int seats) {
+		List<AvailableRow> blockedRows = new ArrayList<>();
+		for (int i = rows; i < MAX_ROWS; i++) {
+			AvailableRow blockedRow = new AvailableRow(show, (char) ('a' + i));
+			blockedRow.setSeats((2 << MAX_SEATS) - 1);
+			blockedRows.add(blockedRow);
+		}
+		return blockedRows;
+	}
+
+	private List<AvailableRow> initAvailableRows(Show show, int rows, int seats) {
+		List<AvailableRow> availableRows = new ArrayList<>();
+		if (seats <= MAX_SEATS) {
+			for (int i = 0; i < rows; i++) {
+				AvailableRow availableRow = new AvailableRow(show, (char) ('a' + i));
+				availableRow.setSeats((2 << MAX_SEATS) - (2 << seats));
+				availableRows.add(availableRow);
+			}
+		}
+		return availableRows;
+	}
+
+	private Optional<Show> findShow(long showId) {
 		return showRepo.findById(showId);
 	}
 
-	public boolean removeSeatsFromShow(long showId, int numOfSeatsToRemove) {
-		Show show = findShow(showId)
-				.orElseThrow(() -> new IllegalStateException("The Show with Id " + showId + " does not exist"));
-		if (show.getAvailableSeats() < numOfSeatsToRemove) {
-			return false;
-		}
-		blockSeatsForShow(showId, numOfSeatsToRemove);
+	public boolean removeSeatsFromShow(long showId, int numOfSeatsToRemove) throws IllegalStateException {
+		Show show = findShowOrThrowErrorIfNotFound(showId);
+		throwErrorIfNotEnoughSeatsToRemove(show, numOfSeatsToRemove);
 		show.setAvailableSeats(show.getAvailableSeats() - numOfSeatsToRemove);
 		showRepo.save(show);
+		availableRowRepo.saveAll(getRowsToUpdate(showId, numOfSeatsToRemove));
 		return true;
 	}
 
-	private void blockSeatsForShow(long showId, int numOfSeatsToRemove) {
+	private Show findShowOrThrowErrorIfNotFound(long showId) {
+		return findShow(showId)
+				.orElseThrow(() -> new IllegalStateException("The Show with Id " + showId + " does not exist"));
+	}
+	
+	private void throwErrorIfNotEnoughSeatsToRemove(Show show, int numOfSeatsToRemove) {
+		if (show.getAvailableSeats() < numOfSeatsToRemove) {
+			throw new IllegalStateException("The Show with Id " + show.getId() + " does not have enough seats to remove");
+		}
+	}
+
+	private List<AvailableRow> getRowsToUpdate(long showId, int numOfSeatsToRemove) {
 		int i = numOfSeatsToRemove;
-		List<AvailableRow> availableRows = StreamSupport.stream(
+		List<AvailableRow> oldRows = StreamSupport.stream(
 				availableRowRepo.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId, BLOCKED_ROW).spliterator(),
 				false).collect(Collectors.toList());
 		List<AvailableRow> newRows = new ArrayList<>();
-		for (AvailableRow row : availableRows) {
-			while (i > 0 && row.getSeats() < AVAILABLE_ROW) {
+		for (AvailableRow row : oldRows) {
+			while (i > 0 && row.getSeats() < FULLY_BOOKED_ROW) {
 				int seat = 0;
 				for (int j = 0; j < 10 && i > 0; j++) {
 					if (((2 << j) & row.getSeats()) == 0) {
@@ -119,42 +142,51 @@ public class ShowService {
 				newRows.add(row);
 			}
 		}
-		availableRowRepo.saveAll(newRows);
+		return newRows;
 	}
 
-	public boolean addRowsToShow(long showId, int rows) {
-		Show show = showRepo.findById(showId)
-				.orElseThrow(() -> new IllegalStateException("The Show with Id " + showId + " does not exist"));
-		int numOfRows = show.getNumOfRows();
-		if (numOfRows + rows > MAX_ROWS) {
-			throw new IllegalStateException(
-					"The Show with Id " + showId + " will exceeds MAX_NUM_OF_ROWS if added [" + rows + "] rows to it");
-		}
-		int seatsPerRow = show.getSeatsPerRow();
-		List<AvailableRow> availableRows = StreamSupport.stream(
-				availableRowRepo.findAllByShowIdAndSeatsEqualsOrderByRowCharAsc(showId, BLOCKED_ROW).spliterator(),
-				false).collect(Collectors.toList());
-		if (availableRows.size() < rows) {
-			throw new IllegalStateException("There is not enough rows to add for the show specified");
-		}
-		List<AvailableRow> addedRows = new ArrayList<>();
-		Iterator<AvailableRow> iter = availableRows.iterator();
-		for (int i = 0; i < rows; i++) {
-			AvailableRow row = iter.next();
-			row.setSeats((2 << MAX_SEATS) - (2 << seatsPerRow));
-			addedRows.add(row);
-		}
+	public boolean addRowsToShow(long showId, int rows) throws IllegalStateException {
+		Show show = findShowOrThrowErrorIfNotFound(showId);
+		throwErrorIfRowsCanBeAddedToShow(rows, show);
+		List<AvailableRow> addedRows = getUnblockedRows(show, rows);
 		show.setNumOfRows(show.getNumOfRows() + rows);
-		show.setAvailableSeats(show.getAvailableSeats() + rows * seatsPerRow);
+		show.setAvailableSeats(show.getAvailableSeats() + rows * show.getSeatsPerRow());
 		showRepo.save(show);
 		availableRowRepo.saveAll(addedRows);
 		return true;
 	}
 
-	public List<String> availablility(long showId) {
+	private void throwErrorIfRowsCanBeAddedToShow(int rows, Show show) {
+		int numOfRows = show.getNumOfRows();
+		if (numOfRows + rows > MAX_ROWS) {
+			throw new IllegalStateException("The Show with Id " + show.getId()
+					+ " will exceeds MAX_NUM_OF_ROWS if added [" + rows + "] rows to it");
+		}
+	}
+
+	private List<AvailableRow> getUnblockedRows(Show show, int rows) {
+		List<AvailableRow> unblockedRows = new ArrayList<>();
+		List<AvailableRow> blockedRows = StreamSupport.stream(availableRowRepo
+				.findAllByShowIdAndSeatsEqualsOrderByRowCharAsc(show.getId(), BLOCKED_ROW).spliterator(), false)
+				.collect(Collectors.toList());
+		Iterator<AvailableRow> iter = blockedRows.iterator();
+		for (int i = 0; i < rows; i++) {
+			AvailableRow row = iter.next();
+			row.setSeats((2 << MAX_SEATS) - (2 << show.getSeatsPerRow()));
+			unblockedRows.add(row);
+		}
+		return unblockedRows;
+	}
+
+	public List<String> seatsAvailablilityOfShow(long showId) throws IllegalStateException {
 		Iterable<AvailableRow> rows = availableRowRepo.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId,
 				BLOCKED_ROW);
 		logger.printf(Level.DEBUG, "Found %d available rows for show %d%n.", IterableUtils.size(rows), showId);
+		List<String> resultList = getAvailableSeatsStrings(rows);
+		return resultList;
+	}
+
+	private List<String> getAvailableSeatsStrings(Iterable<AvailableRow> rows) {
 		List<String> resultList = new ArrayList<>();
 		for (AvailableRow row : rows) {
 			String str = rowSeatsToString(row.getRowChar(), row.getSeats());
@@ -168,7 +200,7 @@ public class ShowService {
 
 	private String rowSeatsToString(char row, int seats) {
 		StringBuilder sb = new StringBuilder();
-		if (seats == AVAILABLE_ROW) {
+		if (seats == FULLY_BOOKED_ROW) {
 			return "";
 		}
 		for (int i = 0; i < 10; i++) {

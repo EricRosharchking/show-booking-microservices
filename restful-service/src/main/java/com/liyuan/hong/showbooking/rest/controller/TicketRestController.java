@@ -43,7 +43,7 @@ public class TicketRestController {
 		logger.printf(Level.INFO, "Received incoming request to view booked tickets for show: [%d]%n", showId);
 		ResponseEntity<TicketDto[]> response = ResponseEntity.noContent().build();
 		try {
-			TicketDto[] ticketDtos = ticketService.viewShow(showId).stream()
+			TicketDto[] ticketDtos = ticketService.viewBookedTicketsOfShow(showId).stream()
 					.map(t -> dtoHelper.prepareTicketDtoFromTicket(t)).toArray(TicketDto[]::new);
 			if (ticketDtos.length > 0) {
 				response = ResponseEntity.ok().body(ticketDtos);

@@ -63,8 +63,7 @@ public class ShowRestController {
 			boolean status = showService.removeSeatsFromShow(showId, seatsToRemove);
 			result = status ? "Successfully removed " + seatsToRemove + " seats from Show of Id " + showId
 					: result + ", not enough seats to remove";
-			response = status ? ResponseEntity.ok(result)
-					: ResponseEntity.badRequest().header("reasonOfFailure", result).build();
+			response = ResponseEntity.ok(result);
 		} catch (IllegalStateException e) {
 			response = ResponseEntity.badRequest().header("reasonOfFailure", e.getMessage()).build();
 		} catch (Exception e) {
@@ -97,7 +96,7 @@ public class ShowRestController {
 		logger.printf(Level.INFO, "Received incoming request to check availability for show: [%d]%n", showId);
 		ResponseEntity<String[]> response = ResponseEntity.noContent().build();
 		try {
-			String[] result = showService.availablility(showId).toArray(String[]::new);
+			String[] result = showService.seatsAvailablilityOfShow(showId).toArray(String[]::new);
 			if (result.length > 0) {
 				response = ResponseEntity.ok().body(result);
 			}

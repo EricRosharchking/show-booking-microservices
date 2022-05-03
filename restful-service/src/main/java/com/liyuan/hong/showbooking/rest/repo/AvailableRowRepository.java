@@ -1,5 +1,7 @@
 package com.liyuan.hong.showbooking.rest.repo;
 
+import java.util.Set;
+
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 
@@ -17,5 +19,8 @@ public interface AvailableRowRepository extends CrudRepository<AvailableRow, Lon
 	Iterable<AvailableRow> findAllByShowIdOrderByRowCharAsc(long showId);
 
 	Iterable<AvailableRow> findAllByShowIdAndSeatsEqualsOrderByRowCharAsc(long showId, int i);
+
+	Iterable<AvailableRow> findAllByShowIdAndSeatsLessThanAndRowCharInOrderByRowCharDesc(long showId, int aVAILABLE_ROW,
+			Set<Character> rowChars);
 
 }

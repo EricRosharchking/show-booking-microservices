@@ -24,8 +24,6 @@ import com.liyuan.hong.showbooking.exception.BuyerException;
 import net.minidev.json.JSONObject;
 
 @Controller
-@Configuration
-@PropertySource("classpath:application.properties")
 public class AppAdminController extends AppController {
 
 	private final String SHOW_END_POINT;
@@ -50,15 +48,6 @@ public class AppAdminController extends AppController {
 				+ env.getProperty("rest.end.point.port", "8081") + "/ticket/";
 	}
 
-	/**
-	 * 1.Setup <Show Number> <Number of Rows> <Number of seats per row>
-	 * <Cancellation window in minutes>
-	 * 
-	 * @param showNum
-	 * @param numOfRows
-	 * @param numOfSeatsPerRow
-	 * @throws BuyerException
-	 */
 	@Override
 	public void setupShow(long showNum, int numOfRows, int numOfSeatsPerRow, int cancelWindow) throws BuyerException {
 		logger.printf(Level.DEBUG, SEND_REQ, "Setup Show");
@@ -84,13 +73,6 @@ public class AppAdminController extends AppController {
 		return obj;
 	}
 
-	/**
-	 * 2.View <Show Number> (Display Show Number, Ticket#, Buyer Phone#, Seat
-	 * Numbers allocated to the buyer)
-	 * 
-	 * @param showNum
-	 * @throws BuyerException
-	 */
 	@Override
 	public void viewShow(long showNum) throws BuyerException {
 		logger.printf(Level.DEBUG, SEND_REQ, "View Show");
@@ -115,13 +97,6 @@ public class AppAdminController extends AppController {
 		}
 	}
 
-	/**
-	 * 3.Remove <Show Number> <count of seats to be reduced>
-	 * 
-	 * @param showNum
-	 * @param numOfSeats
-	 * @throws BuyerException
-	 */
 	@Override
 	public void removeSeatsFromShow(long showNum, int numOfSeats) throws BuyerException {
 		logger.printf(Level.DEBUG, SEND_REQ, "Remove seats from Show");
@@ -139,14 +114,7 @@ public class AppAdminController extends AppController {
 			e.printStackTrace();
 		}
 	}
-
-	/**
-	 * 4.Add <Show Number> <number of rows to be added>
-	 * 
-	 * @param showNum
-	 * @param numOfRows
-	 * @throws BuyerException
-	 */
+	
 	@Override
 	public void addSeatsToShow(long showNum, int numOfRows) throws BuyerException {
 		logger.printf(Level.DEBUG, SEND_REQ, "Add rows to Show");
