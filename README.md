@@ -4,6 +4,7 @@
 
 1. After removing, seats cannot be added back except from adding new rows
 2. Run the jar file with "admin" or "buyer" to access different users' functionalities, there is no need to register or init users
+3. Requires at least java 8 to run and compile, build tool is maven.
 
 ## Use Case
 

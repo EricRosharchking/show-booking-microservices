@@ -7,7 +7,7 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 
 @Entity
-public class AvailableRow {
+public class ShowRow {
 
 	@Id
 	@GeneratedValue
@@ -22,11 +22,11 @@ public class AvailableRow {
 	@Column
 	private int seats;
 
-	public AvailableRow() {
+	public ShowRow() {
 		super();
 	}
 
-	public AvailableRow(Show show, char rowChar) {
+	public ShowRow(Show show, char rowChar) {
 		setShow(show);
 		setRowChar(rowChar);
 	}
@@ -65,6 +65,6 @@ public class AvailableRow {
 
 	@Override
 	public String toString() {
-		return "AvailableRow [rowId=" + rowId + ", show=" + show + ", rowChar=" + rowChar + ", seats=" + seats + "]";
+		return "ShowRow [rowId=" + rowId + ", show=" + show + ", rowChar=" + rowChar + ", seats=" + seats + "]";
 	}
 }

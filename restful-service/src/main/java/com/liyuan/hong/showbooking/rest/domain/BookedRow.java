@@ -14,7 +14,7 @@ public class BookedRow {
 	private long id;
 
 	@OneToOne
-	private AvailableRow row;
+	private ShowRow row;
 
 	@Column
 	private int seats;
@@ -23,7 +23,7 @@ public class BookedRow {
 		super();
 	}
 
-	public BookedRow(AvailableRow row, int seats) {
+	public BookedRow(ShowRow row, int seats) {
 		this.row = row;
 		this.seats = seats;
 	}
@@ -36,11 +36,11 @@ public class BookedRow {
 		this.id = id;
 	}
 
-	public AvailableRow getRow() {
+	public ShowRow getRow() {
 		return row;
 	}
 
-	public void setRow(AvailableRow row) {
+	public void setRow(ShowRow row) {
 		this.row = row;
 	}
 

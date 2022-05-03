@@ -15,9 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.liyuan.hong.showbooking.rest.domain.AvailableRow;
+import com.liyuan.hong.showbooking.rest.domain.ShowRow;
 import com.liyuan.hong.showbooking.rest.domain.Show;
-import com.liyuan.hong.showbooking.rest.repo.AvailableRowRepository;
+import com.liyuan.hong.showbooking.rest.repo.ShowRowRepository;
 import com.liyuan.hong.showbooking.rest.repo.BookedRowRepository;
 import com.liyuan.hong.showbooking.rest.repo.ShowRepository;
 import com.liyuan.hong.showbooking.rest.repo.TicketRepository;
@@ -33,11 +33,11 @@ public class ShowService {
 	private final int BLOCKED_ROW = (2 << 10) - 1;
 	private final int FULLY_BOOKED_ROW = (2 << 10) - 2;
 
-	private AvailableRowRepository availableRowRepo;
+	private ShowRowRepository availableRowRepo;
 	private ShowRepository showRepo;
 
 	@Autowired
-	public ShowService(AvailableRowRepository availableRowsRepo, BookedRowRepository bookedRowRepo,
+	public ShowService(ShowRowRepository availableRowsRepo, BookedRowRepository bookedRowRepo,
 			ShowRepository showRepo, TicketRepository ticketRepo) {
 		super();
 		this.availableRowRepo = availableRowsRepo;
@@ -65,31 +65,31 @@ public class ShowService {
 		}
 	}
 
-	private List<AvailableRow> initAllRowsForShow(Show show, int rows, int seats) {
-		List<AvailableRow> availableRows = new ArrayList<>();
+	private List<ShowRow> initAllRowsForShow(Show show, int rows, int seats) {
+		List<ShowRow> availableRows = new ArrayList<>();
 		availableRows.addAll(initBlockedRows(show, rows, seats));
 		availableRows.addAll(initAvailableRows(show, rows, seats));
-		for (AvailableRow row : availableRows) {
+		for (ShowRow row : availableRows) {
 			logger.debug(row.toString());
 		}
 		return availableRows;
 	}
 
-	private List<AvailableRow> initBlockedRows(Show show, int rows, int seats) {
-		List<AvailableRow> blockedRows = new ArrayList<>();
+	private List<ShowRow> initBlockedRows(Show show, int rows, int seats) {
+		List<ShowRow> blockedRows = new ArrayList<>();
 		for (int i = rows; i < MAX_ROWS; i++) {
-			AvailableRow blockedRow = new AvailableRow(show, (char) ('a' + i));
+			ShowRow blockedRow = new ShowRow(show, (char) ('a' + i));
 			blockedRow.setSeats((2 << MAX_SEATS) - 1);
 			blockedRows.add(blockedRow);
 		}
 		return blockedRows;
 	}
 
-	private List<AvailableRow> initAvailableRows(Show show, int rows, int seats) {
-		List<AvailableRow> availableRows = new ArrayList<>();
+	private List<ShowRow> initAvailableRows(Show show, int rows, int seats) {
+		List<ShowRow> availableRows = new ArrayList<>();
 		if (seats <= MAX_SEATS) {
 			for (int i = 0; i < rows; i++) {
-				AvailableRow availableRow = new AvailableRow(show, (char) ('a' + i));
+				ShowRow availableRow = new ShowRow(show, (char) ('a' + i));
 				availableRow.setSeats((2 << MAX_SEATS) - (2 << seats));
 				availableRows.add(availableRow);
 			}
@@ -121,13 +121,13 @@ public class ShowService {
 		}
 	}
 
-	private List<AvailableRow> getRowsToUpdate(long showId, int numOfSeatsToRemove) {
+	private List<ShowRow> getRowsToUpdate(long showId, int numOfSeatsToRemove) {
 		int i = numOfSeatsToRemove;
-		List<AvailableRow> oldRows = StreamSupport.stream(
+		List<ShowRow> oldRows = StreamSupport.stream(
 				availableRowRepo.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId, BLOCKED_ROW).spliterator(),
 				false).collect(Collectors.toList());
-		List<AvailableRow> newRows = new ArrayList<>();
-		for (AvailableRow row : oldRows) {
+		List<ShowRow> newRows = new ArrayList<>();
+		for (ShowRow row : oldRows) {
 			while (i > 0 && row.getSeats() < FULLY_BOOKED_ROW) {
 				int seat = 0;
 				for (int j = 0; j < 10 && i > 0; j++) {
@@ -148,7 +148,7 @@ public class ShowService {
 	public boolean addRowsToShow(long showId, int rows) throws IllegalStateException {
 		Show show = findShowOrThrowErrorIfNotFound(showId);
 		throwErrorIfRowsCanBeAddedToShow(rows, show);
-		List<AvailableRow> addedRows = getUnblockedRows(show, rows);
+		List<ShowRow> addedRows = getUnblockedRows(show, rows);
 		show.setNumOfRows(show.getNumOfRows() + rows);
 		show.setAvailableSeats(show.getAvailableSeats() + rows * show.getSeatsPerRow());
 		showRepo.save(show);
@@ -164,14 +164,14 @@ public class ShowService {
 		}
 	}
 
-	private List<AvailableRow> getUnblockedRows(Show show, int rows) {
-		List<AvailableRow> unblockedRows = new ArrayList<>();
-		List<AvailableRow> blockedRows = StreamSupport.stream(availableRowRepo
+	private List<ShowRow> getUnblockedRows(Show show, int rows) {
+		List<ShowRow> unblockedRows = new ArrayList<>();
+		List<ShowRow> blockedRows = StreamSupport.stream(availableRowRepo
 				.findAllByShowIdAndSeatsEqualsOrderByRowCharAsc(show.getId(), BLOCKED_ROW).spliterator(), false)
 				.collect(Collectors.toList());
-		Iterator<AvailableRow> iter = blockedRows.iterator();
+		Iterator<ShowRow> iter = blockedRows.iterator();
 		for (int i = 0; i < rows; i++) {
-			AvailableRow row = iter.next();
+			ShowRow row = iter.next();
 			row.setSeats((2 << MAX_SEATS) - (2 << show.getSeatsPerRow()));
 			unblockedRows.add(row);
 		}
@@ -179,16 +179,16 @@ public class ShowService {
 	}
 
 	public List<String> seatsAvailablilityOfShow(long showId) throws IllegalStateException {
-		Iterable<AvailableRow> rows = availableRowRepo.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId,
+		Iterable<ShowRow> rows = availableRowRepo.findAllByShowIdAndSeatsLessThanOrderByRowCharDesc(showId,
 				BLOCKED_ROW);
 		logger.printf(Level.DEBUG, "Found %d available rows for show %d%n.", IterableUtils.size(rows), showId);
 		List<String> resultList = getAvailableSeatsStrings(rows);
 		return resultList;
 	}
 
-	private List<String> getAvailableSeatsStrings(Iterable<AvailableRow> rows) {
+	private List<String> getAvailableSeatsStrings(Iterable<ShowRow> rows) {
 		List<String> resultList = new ArrayList<>();
-		for (AvailableRow row : rows) {
+		for (ShowRow row : rows) {
 			String str = rowSeatsToString(row.getRowChar(), row.getSeats());
 			if (!str.isEmpty()) {
 				logger.printf(Level.DEBUG, "[%s] added to result", str);

@@ -16,11 +16,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.liyuan.hong.showbooking.rest.domain.AvailableRow;
+import com.liyuan.hong.showbooking.rest.domain.ShowRow;
 import com.liyuan.hong.showbooking.rest.domain.BookedRow;
 import com.liyuan.hong.showbooking.rest.domain.Show;
 import com.liyuan.hong.showbooking.rest.domain.Ticket;
-import com.liyuan.hong.showbooking.rest.repo.AvailableRowRepository;
+import com.liyuan.hong.showbooking.rest.repo.ShowRowRepository;
 import com.liyuan.hong.showbooking.rest.repo.BookedRowRepository;
 import com.liyuan.hong.showbooking.rest.repo.ShowRepository;
 import com.liyuan.hong.showbooking.rest.repo.TicketRepository;
@@ -33,13 +33,13 @@ public class TicketService {
 
 	Logger logger = LogManager.getLogger(this.getClass());
 
-	private AvailableRowRepository availableRowRepo;
+	private ShowRowRepository availableRowRepo;
 	private BookedRowRepository bookedRowRepo;
 	private ShowRepository showRepo;
 	private TicketRepository ticketRepo;
 
 	@Autowired
-	public TicketService(AvailableRowRepository availableRowsRepo, BookedRowRepository bookedRowRepo,
+	public TicketService(ShowRowRepository availableRowsRepo, BookedRowRepository bookedRowRepo,
 			ShowRepository showRepo, TicketRepository ticketRepo) {
 		super();
 		this.availableRowRepo = availableRowsRepo;
@@ -58,9 +58,9 @@ public class TicketService {
 		Map<Character, Integer> bookingSeatsInRowChars = getBookingSeatsForRowChars(csSeats);
 		int numOfSeats = getTotalNumOfSeatsToBook(bookingSeatsInRowChars);
 		throwErrorIfNotEnoughSeatsToBook(show, numOfSeats);
-		Iterable<AvailableRow> availableRows = findAvailableRowsToBookAndLog(showId, bookingSeatsInRowChars.keySet());
+		Iterable<ShowRow> availableRows = findAvailableRowsToBookAndLog(showId, bookingSeatsInRowChars.keySet());
 		Set<BookedRow> bookedRows = getBookedRows(availableRows, bookingSeatsInRowChars);
-		List<AvailableRow> rowsToBook = getAvailableRowsToBook(availableRows, bookingSeatsInRowChars);
+		List<ShowRow> rowsToBook = getAvailableRowsToBook(availableRows, bookingSeatsInRowChars);
 		show.setAvailableSeats(show.getAvailableSeats() - numOfSeats);
 		show = showRepo.save(show);
 		Ticket t = new Ticket(show, phoneNum, LocalDateTime.now(), numOfSeats, bookedRows);
@@ -119,21 +119,21 @@ public class TicketService {
 		}
 	}
 
-	private Iterable<AvailableRow> findAvailableRowsToBookAndLog(long showId, Set<Character> rowChars) {
-		Iterable<AvailableRow> availableRows = availableRowRepo
+	private Iterable<ShowRow> findAvailableRowsToBookAndLog(long showId, Set<Character> rowChars) {
+		Iterable<ShowRow> availableRows = availableRowRepo
 				.findAllByShowIdAndSeatsLessThanAndRowCharInOrderByRowCharDesc(showId, FULLY_BOOKED_ROW, rowChars);
 		logger.printf(Level.DEBUG, "Found %d available rows for show %d%n", IterableUtils.size(availableRows), showId);
-		for (AvailableRow r : availableRows) {
+		for (ShowRow r : availableRows) {
 			logger.printf(Level.DEBUG, "Found availableRow %c-%s%n", r.getRowChar(),
 					Integer.toBinaryString(r.getSeats()));
 		}
 		return availableRows;
 	}
 
-	private Set<BookedRow> getBookedRows(Iterable<AvailableRow> availableRows,
+	private Set<BookedRow> getBookedRows(Iterable<ShowRow> availableRows,
 			Map<Character, Integer> bookingSeatsInRowChars) {
 		Set<BookedRow> bookedRows = new HashSet<>();
-		for (AvailableRow row : availableRows) {
+		for (ShowRow row : availableRows) {
 			int availableSeats = row.getSeats();
 			int bookingSeats = bookingSeatsInRowChars.get(row.getRowChar());
 			throwErrorIfBookedOrBlocked(availableSeats, bookingSeats, row);
@@ -142,7 +142,7 @@ public class TicketService {
 		return bookedRows;
 	}
 
-	private void throwErrorIfBookedOrBlocked(int availableSeats, int bookingSeats, AvailableRow row) {
+	private void throwErrorIfBookedOrBlocked(int availableSeats, int bookingSeats, ShowRow row) {
 		if ((availableSeats & bookingSeats) != 0) {
 			logger.printf(Level.DEBUG, "AvailableRow is %c-%s, bookingSeats is %s%n", row.getRowChar(),
 					Integer.toBinaryString(row.getSeats()), Integer.toBinaryString(bookingSeats));
@@ -151,10 +151,10 @@ public class TicketService {
 		}
 	}
 
-	private List<AvailableRow> getAvailableRowsToBook(Iterable<AvailableRow> availableRows,
+	private List<ShowRow> getAvailableRowsToBook(Iterable<ShowRow> availableRows,
 			Map<Character, Integer> bookingSeatsInRowChars) {
-		List<AvailableRow> rowsToBook = new ArrayList<>();
-		for (AvailableRow row : availableRows) {
+		List<ShowRow> rowsToBook = new ArrayList<>();
+		for (ShowRow row : availableRows) {
 			int availableSeats = row.getSeats();
 			int bookingSeats = bookingSeatsInRowChars.get(row.getRowChar());
 			throwErrorIfBookedOrBlocked(availableSeats, bookingSeats, row);
@@ -189,10 +189,10 @@ public class TicketService {
 		}
 	}
 
-	private List<AvailableRow> getRowsToUpdate(Ticket t) {
-		List<AvailableRow> rowsToUpdate = new ArrayList<>();
+	private List<ShowRow> getRowsToUpdate(Ticket t) {
+		List<ShowRow> rowsToUpdate = new ArrayList<>();
 		for (BookedRow bRow : t.getBookedRow()) {
-			AvailableRow aRow = bRow.getRow();
+			ShowRow aRow = bRow.getRow();
 			aRow.setSeats(aRow.getSeats() ^ bRow.getSeats());
 			rowsToUpdate.add(aRow);
 		}
